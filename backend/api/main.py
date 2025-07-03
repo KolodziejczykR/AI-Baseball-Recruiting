@@ -1,10 +1,12 @@
 from fastapi import FastAPI
 from backend.ml.ml_router import router as ml_router
+from backend.scraper.team_scraper import router as scraper_router
 
 app = FastAPI(title="AI/ML Baseball Recruitment Backend")
 
 # Import and include the ML router
 app.include_router(ml_router, prefix="/predict")
+app.include_router(scraper_router)
 
 @app.get("/")
 def read_root():
