@@ -1,0 +1,10 @@
+pytest
+httpx
+fastapi
+uvicorn[standard]
+scikit-learn
+xgboost
+pandas
+requests
+beautifulsoup4
+openai 
