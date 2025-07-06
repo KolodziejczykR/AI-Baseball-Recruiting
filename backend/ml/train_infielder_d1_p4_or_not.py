@@ -20,7 +20,7 @@ class InfielderD1P4ModelTrainer:
     def load_and_preprocess_data(self, exclude_columns=None):
         """Load and preprocess the infielder data, filtering to only D1 players"""
         print("Loading data...")
-        df = pd.read_csv(self.data_path)
+        df: pd.DataFrame = pd.read_csv(self.data_path)
         
         # Remove problematic columns with too many missing values
         if exclude_columns is None:
@@ -49,20 +49,21 @@ class InfielderD1P4ModelTrainer:
         
         # Keep only relevant columns
         keep_columns = [col for col in df.columns if col not in exclude_columns]
-        df = df[keep_columns]
+        df = pd.DataFrame(df[keep_columns])
         
         print(f"Original shape: {df.shape}")
         print(f"Excluded columns: {exclude_columns}")
         
         # Filter to only keep rows where inf_velo is not missing
         if 'inf_velo' in df.columns:
-            df = df.dropna(subset=['inf_velo'])
+            df = pd.DataFrame(df.dropna(subset=['inf_velo']))
             print(f"Shape after filtering for valid inf_velo: {df.shape}")
         
         # Filter to only D1 players (Non P4 D1 + Power 4 D1)
         target_col = 'three_section_commit_group'
         d1_mask = df[target_col].isin(['Non P4 D1', 'Power 4 D1'])
-        df = df[d1_mask]
+        if d1_mask is not None:
+            df = pd.DataFrame(df[d1_mask])
         print(f"Shape after filtering for D1 players only: {df.shape}")
         
         # Handle missing values for remaining columns
@@ -92,6 +93,10 @@ class InfielderD1P4ModelTrainer:
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=0.2, random_state=42, stratify=y
         )
+        X_train = np.array(X_train)
+        X_test = np.array(X_test)
+        y_train = np.array(y_train)
+        y_test = np.array(y_test)
         
         # Scale numerical features
         X_train_scaled, X_test_scaled, self.scalers = self._scale_features(X_train, X_test)
@@ -257,6 +262,9 @@ def main():
     
     # Load and preprocess data
     X_train, X_test, y_train, y_test, feature_names = trainer.load_and_preprocess_data()
+
+    X_train = np.array(X_train)
+    X_test = np.array(X_test)
     
     print(f"Training set shape: {X_train.shape}")
     print(f"Test set shape: {X_test.shape}")
