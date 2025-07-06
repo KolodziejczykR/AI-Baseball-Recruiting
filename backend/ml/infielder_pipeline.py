@@ -125,7 +125,7 @@ class InfielderPredictionPipeline:
                     df[col] = default_values.get(col, 'Unknown')
         
         # Select only the features used in training in the correct order
-        df = df[feature_columns]
+        df = pd.DataFrame(df[feature_columns])
         
         # Handle missing values
         df = self._handle_missing_values(df, is_d1_model)
@@ -177,7 +177,9 @@ class InfielderPredictionPipeline:
                     'player_region': 'Unknown',
                     'primary_position': 'SS'  # Default to shortstop
                 }
-                df_processed[col].fillna(default_values.get(col, df[col].mode()[0] if len(df[col].mode()) > 0 else 'Unknown'), inplace=True)
+                mode_values = df[col].mode()
+                fallback_value = default_values.get(col, mode_values.iloc[0] if len(mode_values) > 0 else 'Unknown')
+                df_processed[col].fillna(fallback_value, inplace=True)
         
         return df_processed
     
@@ -206,6 +208,8 @@ class InfielderPredictionPipeline:
     def _scale_features(self, df: pd.DataFrame, is_d1_model: bool) -> np.ndarray:
         """Scale numerical features using the saved scaler"""
         scaler = self.d1_scaler if is_d1_model else self.p4_scaler
+        if scaler is None:
+            raise ValueError("Scaler not loaded")
         return scaler.transform(df)
     
     def predict(self, input_data: Dict) -> Dict:
@@ -221,6 +225,8 @@ class InfielderPredictionPipeline:
         try:
             # Stage 1: Predict D1 vs Non-D1
             d1_features = self._preprocess_input(input_data, is_d1_model=True)
+            if self.d1_model is None:
+                raise ValueError("D1 model not loaded")
             d1_proba = self.d1_model.predict_proba(d1_features)[0]
             d1_prediction = self.d1_model.predict(d1_features)[0]
             
@@ -244,6 +250,8 @@ class InfielderPredictionPipeline:
             else:  # D1 - proceed to Stage 2
                 # Stage 2: Predict Power 4 vs Non-Power 4 D1
                 p4_features = self._preprocess_input(input_data, is_d1_model=False)
+                if self.p4_model is None:
+                    raise ValueError("P4 model not loaded")
                 p4_proba = self.p4_model.predict_proba(p4_features)[0]
                 p4_prediction = self.p4_model.predict(p4_features)[0]
                 
