@@ -10,3 +10,4 @@ beautifulsoup4
 openai 
 catboost
 joblib
+torch
