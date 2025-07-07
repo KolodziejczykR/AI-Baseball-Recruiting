@@ -354,4 +354,42 @@ def test_required_features(pipeline):
     # Check that some expected features are present
     expected_features = ["exit_velo_max", "inf_velo", "primary_position"]
     for feature in expected_features:
-        assert feature in required_features 
+        assert feature in required_features
+
+def test_whitespace_cleaning(pipeline):
+    data = {
+        "age": 17.0,
+        "inf_velo": 75.0,
+        "exit_velo_max": 85.0,
+        "primary_position": "  SS  ",
+        "throwing_hand": " R ",
+        "hitting_handedness": " R ",
+        "player_region": " West "
+    }
+    result = pipeline.predict(data)
+    assert "prediction" in result
+    assert "probabilities" in result
+    assert result["prediction"] in ["Non D1", "Non P4 D1", "Power 4 D1"]
+    assert all(0.0 <= v <= 1.0 for v in result["probabilities"].values())
+
+def test_vae_imputation(pipeline):
+    # Input missing a VAE-imputed stat
+    data_missing = {
+        "age": 17.0,
+        "inf_velo": 75.0,
+        "primary_position": "SS"
+    }
+    data_full = {
+        "age": 17.0,
+        "inf_velo": 75.0,
+        "exit_velo_max": 85.0,
+        "primary_position": "SS"
+    }
+    result_missing = pipeline.predict(data_missing)
+    result_full = pipeline.predict(data_full)
+    assert "prediction" in result_missing
+    assert "prediction" in result_full
+    assert "probabilities" in result_missing
+    assert "probabilities" in result_full
+    assert all(0.0 <= v <= 1.0 for v in result_missing["probabilities"].values())
+    assert all(0.0 <= v <= 1.0 for v in result_full["probabilities"].values()) 

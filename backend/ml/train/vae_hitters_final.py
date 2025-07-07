@@ -6,6 +6,8 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
+import joblib
+import os
 
 class VAE(nn.Module):
     def __init__(self, input_dim, latent_dim=10):
@@ -276,7 +278,7 @@ def create_vae_hitters_final():
         vae_hitters: DataFrame with filled values and missing indicators
     """
     # Load the data
-    df = pd.read_csv('clean_hitter_data.csv')
+    df = pd.read_csv('backend/data/hitters/clean_hitter_data.csv')
     
     # Add missing indicators
     df_with_indicators = add_missing_indicators(df)
@@ -332,6 +334,65 @@ def compare_means(df_original, df_vae, features):
             print(f"  Original valid std: {original_valid.std():.2f}")
             print(f"  VAE all data std: {vae_all.std():.2f}")
 
+def save_vae_and_scalers(vae, scalers, model_dir, vae_filename='vae_hitters_final.pt', scaler_filename='vae_hitters_scalers.pkl'):
+    """
+    Save the VAE model (PyTorch) and scalers (joblib) to disk.
+    """
+    os.makedirs(model_dir, exist_ok=True)
+    vae_path = os.path.join(model_dir, vae_filename)
+    scaler_path = os.path.join(model_dir, scaler_filename)
+    torch.save(vae.state_dict(), vae_path)
+    joblib.dump(scalers, scaler_path)
+    print(f"Saved VAE model to {vae_path}")
+    print(f"Saved scalers to {scaler_path}")
+
+
+def load_vae_and_scalers(model_dir, input_dim, latent_dim=10, vae_filename='vae_hitters_final.pt', scaler_filename='vae_hitters_scalers.pkl', device='cpu'):
+    """
+    Load the VAE model (PyTorch) and scalers (joblib) from disk.
+    """
+    vae_path = os.path.join(model_dir, vae_filename)
+    scaler_path = os.path.join(model_dir, scaler_filename)
+    vae = VAE(input_dim=input_dim, latent_dim=latent_dim).to(device)
+    vae.load_state_dict(torch.load(vae_path, map_location=device))
+    vae.eval()
+    scalers = joblib.load(scaler_path)
+    return vae, scalers
+
+
+def impute_with_vae(user_input_dict, vae, scalers, features_to_use, scaler_type='standard', device='cpu'):
+    """
+    Impute missing hitting/running stats in user input using the trained VAE and scalers.
+    Args:
+        user_input_dict: dict of user input (single row)
+        vae: loaded VAE model
+        scalers: list of fitted scalers
+        features_to_use: list of features to impute
+        scaler_type: 'standard' or 'minmax'
+        device: 'cpu' or 'cuda'
+    Returns:
+        dict with missing values imputed for features_to_use
+    """
+    df = pd.DataFrame([user_input_dict])
+    # Ensure all VAE features are present as columns
+    for feature in features_to_use:
+        if feature not in df.columns:
+            df[feature] = np.nan
+    scaled_data, _, mask, _, _ = prepare_data_for_vae_final(df, features_to_use, scaler_type)
+    data_tensor = torch.FloatTensor(scaled_data).to(device)
+    vae.eval()
+    with torch.no_grad():
+        recon_data, _, _ = vae(data_tensor)
+        recon_data = recon_data.cpu().numpy()
+    imputed_row = df.copy()
+    for i, feature in enumerate(features_to_use):
+        if scalers[i] is not None:
+            recon_feature = recon_data[:, i].reshape(-1, 1)
+            recon_original_scale = scalers[i].inverse_transform(recon_feature).flatten()
+            if pd.isnull(df.iloc[0][feature]):
+                imputed_row.at[0, feature] = recon_original_scale[0]
+    return imputed_row.iloc[0].to_dict()
+
 if __name__ == "__main__":
     print("Creating final VAE-filled hitter dataset...")
     
@@ -339,7 +400,7 @@ if __name__ == "__main__":
     vae_hitters = create_vae_hitters_final()
     
     # Load original data for comparison
-    original_df = pd.read_csv('clean_hitter_data.csv')
+    original_df = pd.read_csv('backend/data/hitters/clean_hitter_data.csv')
     
     # Features to compare
     features_to_compare = [
@@ -351,10 +412,25 @@ if __name__ == "__main__":
     # Compare means
     compare_means(original_df, vae_hitters, features_to_compare)
     
-    # Save the result
-    vae_hitters.to_csv('vae_hitters_final.csv', index=False)
-    print(f"\nFinal VAE dataset saved as 'vae_hitters_final.csv'")
+    # Do NOT save the result as vae_hitters_final.csv
+    # vae_hitters.to_csv('vae_hitters_final.csv', index=False)
+    # print(f"\nFinal VAE dataset saved as 'vae_hitters_final.csv'")
     print(f"Dataset shape: {vae_hitters.shape}")
+    
+    # Save VAE model and scalers
+    model_dir = os.path.join(os.path.dirname(__file__), '../models')
+    # Re-run VAE training to get model and scalers
+    df_with_indicators = add_missing_indicators(original_df)
+    vae_features = [
+        'hand_speed_max', 'bat_speed_max', 'rot_acc_max',
+        'sixty_time', 'thirty_time', 'ten_yard_time', 'run_speed_max',
+        'exit_velo_max', 'exit_velo_avg', 'distance_max', 'sweet_spot_p'
+    ]
+    vae_features = [f for f in vae_features if f in df_with_indicators.columns]
+    _, vae_model, scalers = fill_missing_values_with_vae_final(
+        df_with_indicators, vae_features, latent_dim=10, epochs=100, batch_size=32
+    )
+    save_vae_and_scalers(vae_model, scalers, model_dir)
     
     # Show missing indicators summary
     print(f"\n=== MISSING INDICATORS SUMMARY ===")

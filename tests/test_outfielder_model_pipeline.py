@@ -446,4 +446,42 @@ def test_balanced_player(pipeline):
     result = pipeline.predict(balanced_player)
     assert "prediction" in result
     assert "probabilities" in result
-    assert result["prediction"] in ["Non D1", "Non P4 D1", "Power 4 D1"] 
+    assert result["prediction"] in ["Non D1", "Non P4 D1", "Power 4 D1"]
+
+def test_whitespace_cleaning(pipeline):
+    data = {
+        "age": 17.0,
+        "of_velo": 78.0,
+        "exit_velo_max": 88.0,
+        "primary_position": "  CF  ",
+        "throwing_hand": " R ",
+        "hitting_handedness": " R ",
+        "player_region": " West "
+    }
+    result = pipeline.predict(data)
+    assert "prediction" in result
+    assert "probabilities" in result
+    assert result["prediction"] in ["Non D1", "Non P4 D1", "Power 4 D1"]
+    assert all(0.0 <= v <= 1.0 for v in result["probabilities"].values())
+
+def test_vae_imputation(pipeline):
+    # Input missing a VAE-imputed stat
+    data_missing = {
+        "age": 17.0,
+        "of_velo": 78.0,
+        "primary_position": "CF"
+    }
+    data_full = {
+        "age": 17.0,
+        "of_velo": 78.0,
+        "exit_velo_max": 88.0,
+        "primary_position": "CF"
+    }
+    result_missing = pipeline.predict(data_missing)
+    result_full = pipeline.predict(data_full)
+    assert "prediction" in result_missing
+    assert "prediction" in result_full
+    assert "probabilities" in result_missing
+    assert "probabilities" in result_full
+    assert all(0.0 <= v <= 1.0 for v in result_missing["probabilities"].values())
+    assert all(0.0 <= v <= 1.0 for v in result_full["probabilities"].values()) 

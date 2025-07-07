@@ -5,6 +5,7 @@ import joblib
 from typing import Dict, List, Tuple, Optional
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 import warnings
+from backend.ml.train.vae_hitters_final import impute_with_vae, load_vae_and_scalers
 warnings.filterwarnings('ignore')
 
 class InfielderPredictionPipeline:
@@ -92,6 +93,22 @@ class InfielderPredictionPipeline:
         Returns:
             Preprocessed feature array
         """
+        # Clean user data
+        input_data = clean_user_data(input_data)
+
+        # VAE imputation for hitting/running stats
+        vae_features = [
+            'hand_speed_max', 'bat_speed_max', 'rot_acc_max',
+            'sixty_time', 'thirty_time', 'ten_yard_time', 'run_speed_max',
+            'exit_velo_max', 'exit_velo_avg', 'distance_max', 'sweet_spot_p'
+        ]
+        model_dir = os.path.join(os.path.dirname(__file__), '../models')
+        if not hasattr(self, '_vae_model') or not hasattr(self, '_vae_scalers'):
+            self._vae_model, self._vae_scalers = load_vae_and_scalers(
+                model_dir, input_dim=len(vae_features), latent_dim=10
+            )
+        input_data = impute_with_vae(input_data, self._vae_model, self._vae_scalers, vae_features)
+
         # Get the feature columns for this model
         feature_columns = self._get_feature_columns()
         
@@ -329,3 +346,28 @@ class InfielderPredictionPipeline:
         }
         
         return feature_info 
+
+def clean_user_data(input_dict):
+    """
+    Clean user input data:
+    - Strip whitespace from all string fields (values only)
+    - Coerce numerics to float or None
+    """
+    cleaned = {}
+    numeric_fields = [
+        'height', 'weight', 'hand_speed_max', 'bat_speed_max', 'rot_acc_max',
+        'sixty_time', 'thirty_time', 'ten_yard_time', 'run_speed_max',
+        'exit_velo_max', 'exit_velo_avg', 'distance_max', 'sweet_spot_p',
+        'c_velo', 'pop_time', 'inf_velo', 'of_velo', 'number_of_missing'
+    ]
+    for k, v in input_dict.items():
+        if isinstance(v, str):
+            cleaned[k] = v.strip()
+        elif k in numeric_fields:
+            try:
+                cleaned[k] = float(v)
+            except (ValueError, TypeError):
+                cleaned[k] = None
+        else:
+            cleaned[k] = v
+    return cleaned 
