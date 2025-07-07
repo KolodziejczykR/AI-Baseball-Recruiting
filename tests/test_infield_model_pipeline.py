@@ -2,7 +2,7 @@ import pytest
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '../backend/ml'))
-from infielder_pipeline import InfielderPredictionPipeline
+from backend.ml.pipeline.infielder_pipeline import InfielderPredictionPipeline
 
 @pytest.fixture(scope="module")
 def pipeline():

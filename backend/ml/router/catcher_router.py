@@ -5,22 +5,22 @@ import os
 import sys
 
 # Use absolute path for models directory
-models_dir = os.path.join(os.path.dirname(__file__), 'models')
+models_dir = os.path.join(os.path.dirname(__file__), '..', 'models')
 
-sys.path.append(os.path.dirname(__file__))
-from infielder_pipeline import InfielderPredictionPipeline
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from pipeline.catcher_pipeline import CatcherPredictionPipeline
 
 router = APIRouter()
 
 # Initialize the pipeline
 try:
-    pipeline = InfielderPredictionPipeline(models_dir=models_dir)
+    pipeline = CatcherPredictionPipeline(models_dir=models_dir)
 except Exception as e:
-    print(f"Failed to initialize infielder pipeline: {e}")
+    print(f"Failed to initialize catcher pipeline: {e}")
     pipeline = None
 
-class InfielderInput(BaseModel):
-    """Input model for infielder statistics"""
+class CatcherInput(BaseModel):
+    """Input model for catcher statistics"""
     
     # Numerical features
     height: Optional[float] = Field(None, description="Player height in inches")
@@ -36,17 +36,18 @@ class InfielderInput(BaseModel):
     exit_velo_avg: Optional[float] = Field(None, description="Average exit velocity (mph)")
     distance_max: Optional[float] = Field(None, description="Maximum hit distance (feet)")
     sweet_spot_p: Optional[float] = Field(None, description="Sweet spot percentage (0-1)")
-    inf_velo: Optional[float] = Field(None, description="Infield velocity (mph)")
+    c_velo: Optional[float] = Field(None, description="Catcher velocity (mph)")
+    pop_time: Optional[float] = Field(None, description="Pop time (seconds)")
     number_of_missing: Optional[float] = Field(None, description="Number of missing values in player data")
     
     # Categorical features
     throwing_hand: Optional[str] = Field(None, description="Throwing hand (L/R)")
     hitting_handedness: Optional[str] = Field(None, description="Hitting handedness (L/R/S)")
     player_region: Optional[str] = Field(None, description="Player region")
-    primary_position: Optional[str] = Field(None, description="Primary position (SS, 2B, 3B, 1B)")
+    primary_position: Optional[str] = Field(None, description="Primary position (C)")
 
 class PredictionResponse(BaseModel):
-    """Response model for infielder predictions"""
+    """Response model for catcher predictions"""
     prediction: str
     probabilities: Dict[str, float]
     confidence: float
@@ -54,9 +55,9 @@ class PredictionResponse(BaseModel):
     error: Optional[str] = None
 
 @router.post("/predict", response_model=PredictionResponse)
-async def predict_infielder(input_data: InfielderInput) -> Dict[str, Any]:
+async def predict_catcher(input_data: CatcherInput) -> Dict[str, Any]:
     """
-    Predict infielder college level using the two-stage XGBoost pipeline.
+    Predict catcher college level using the two-stage XGBoost pipeline.
     
     The pipeline works as follows:
     1. First stage: Predict D1 vs Non-D1
@@ -116,12 +117,13 @@ async def get_example_input() -> Dict[str, Any]:
             "exit_velo_avg": 78.0,
             "distance_max": 320.0,
             "sweet_spot_p": 0.75,
-            "inf_velo": 78.0,
+            "c_velo": 78.0,
+            "pop_time": 1.9,
             "player_state": "CA",
             "throwing_hand": "R",
             "hitting_handedness": "R",
             "player_region": "West",
-            "primary_position": "SS"
+            "primary_position": "C"
         },
-        "description": "This is an example of a high-performing infielder's statistics"
+        "description": "This is an example of a high-performing catcher's statistics"
     } 

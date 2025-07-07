@@ -289,4 +289,142 @@ def test_outfielder_empty_data():
     response = client.post("/outfielder/predict", json=data)
     assert response.status_code == 200  # Should handle empty data gracefully
     result = response.json()
+    assert "prediction" in result
+
+# Catcher API Tests
+def test_catcher_predict_high_performer():
+    """Test catcher prediction with high-performing player data"""
+    data = {
+        "height": 72.0,
+        "weight": 185.0,
+        "hand_speed_max": 22.5,
+        "bat_speed_max": 75.0,
+        "rot_acc_max": 18.0,
+        "sixty_time": 6.8,
+        "thirty_time": 3.2,
+        "ten_yard_time": 1.7,
+        "run_speed_max": 22.0,
+        "exit_velo_max": 88.0,
+        "exit_velo_avg": 78.0,
+        "distance_max": 320.0,
+        "sweet_spot_p": 0.75,
+        "c_velo": 78.0,
+        "pop_time": 1.8,
+        "throwing_hand": "R",
+        "hitting_handedness": "R",
+        "player_region": "West",
+        "primary_position": "C"
+    }
+    response = client.post("/catcher/predict", json=data)
+    assert response.status_code == 200
+    result = response.json()
+    assert "prediction" in result
+    assert "probabilities" in result
+    assert "confidence" in result
+    assert "stage" in result
+    assert result["prediction"] in ["Non D1", "Non P4 D1", "Power 4 D1"]
+    assert isinstance(result["probabilities"], dict)
+    assert all(0.0 <= v <= 1.0 for v in result["probabilities"].values())
+
+def test_catcher_predict_minimal_data():
+    """Test catcher prediction with minimal data"""
+    data = {
+        "exit_velo_max": 85.0,
+        "c_velo": 75.0,
+        "primary_position": "C"
+    }
+    response = client.post("/catcher/predict", json=data)
+    assert response.status_code == 200
+    result = response.json()
+    assert "prediction" in result
+    assert "probabilities" in result
+    assert result["prediction"] in ["Non D1", "Non P4 D1", "Power 4 D1"]
+
+def test_catcher_features_endpoint():
+    """Test catcher features endpoint"""
+    response = client.get("/catcher/features")
+    assert response.status_code == 200
+    result = response.json()
+    assert "required_features" in result
+    assert "feature_info" in result
+    assert isinstance(result["required_features"], list)
+    assert isinstance(result["feature_info"], dict)
+
+def test_catcher_health_endpoint():
+    """Test catcher health endpoint"""
+    response = client.get("/catcher/health")
+    assert response.status_code == 200
+    result = response.json()
+    assert "status" in result
+    assert "pipeline_loaded" in result
+    assert isinstance(result["status"], str)
+    assert isinstance(result["pipeline_loaded"], bool)
+
+def test_catcher_example_endpoint():
+    """Test catcher example endpoint"""
+    response = client.get("/catcher/example")
+    assert response.status_code == 200
+    result = response.json()
+    assert "example_input" in result
+    assert "description" in result
+    assert isinstance(result["example_input"], dict)
+    assert isinstance(result["description"], str)
+
+def test_catcher_specific_features():
+    """Test catcher prediction with catcher-specific features"""
+    data = {
+        "height": 70.0,
+        "weight": 175.0,
+        "exit_velo_max": 85.0,
+        "c_velo": 75.0,
+        "pop_time": 2.0,
+        "throwing_hand": "R",
+        "hitting_handedness": "R",
+        "player_region": "West",
+        "primary_position": "C"
+    }
+    response = client.post("/catcher/predict", json=data)
+    assert response.status_code == 200
+    result = response.json()
+    assert "prediction" in result
+    assert result["prediction"] in ["Non D1", "Non P4 D1", "Power 4 D1"]
+
+def test_catcher_different_pop_times():
+    """Test catcher predictions with different pop times"""
+    pop_times = [1.8, 2.0, 2.2, 2.5]
+    base_data = {
+        "exit_velo_max": 85.0,
+        "c_velo": 75.0,
+        "throwing_hand": "R",
+        "hitting_handedness": "R",
+        "player_region": "West",
+        "primary_position": "C"
+    }
+    
+    for pop_time in pop_times:
+        data = base_data.copy()
+        data["pop_time"] = pop_time
+        response = client.post("/catcher/predict", json=data)
+        assert response.status_code == 200
+        result = response.json()
+        assert "prediction" in result
+        assert result["prediction"] in ["Non D1", "Non P4 D1", "Power 4 D1"]
+
+def test_catcher_invalid_data():
+    """Test catcher prediction with invalid data"""
+    data = {
+        "exit_velo_max": "invalid",  # Should be a number
+        "c_velo": 75.0,
+        "primary_position": "C"
+    }
+    response = client.post("/catcher/predict", json=data)
+    # Should either return 422 (validation error) or 400 (processing error)
+    assert response.status_code in [400, 422]
+
+def test_catcher_empty_data():
+    """Test catcher prediction with empty data"""
+    data = {}
+    response = client.post("/catcher/predict", json=data)
+    assert response.status_code == 200  # Should handle empty data gracefully
+    result = response.json()
     assert "prediction" in result 

@@ -31,12 +31,12 @@ class InfielderPredictionPipeline:
         """Load the trained models and preprocessing artifacts"""
         try:
             # Load D1 vs Non-D1 model and artifacts
-            self.d1_model = joblib.load(os.path.join(self.models_dir, 'xgb_infield_d1_or_not.pkl'))
+            self.d1_model = joblib.load(os.path.join(self.models_dir, 'lgb_infield_d1_or_not.pkl'))
             self.d1_scaler = joblib.load(os.path.join(self.models_dir, 'scalers_infield.pkl'))
             self.d1_label_encoders = joblib.load(os.path.join(self.models_dir, 'label_encoders_infield.pkl'))
             
             # Load Power 4 vs Non-Power 4 model and artifacts
-            self.p4_model = joblib.load(os.path.join(self.models_dir, 'xgb_infield_d1_p4_or_not.pkl'))
+            self.p4_model = joblib.load(os.path.join(self.models_dir, 'cb_infield_d1_p4_or_not.pkl'))
             self.p4_scaler = joblib.load(os.path.join(self.models_dir, 'scalers_infield_d1_p4.pkl'))
             self.p4_label_encoders = joblib.load(os.path.join(self.models_dir, 'label_encoders_infield_d1_p4.pkl'))
             

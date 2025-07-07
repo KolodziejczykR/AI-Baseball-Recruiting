@@ -9,8 +9,8 @@ import joblib
 import warnings
 warnings.filterwarnings('ignore')
 
-class OutfielderD1P4ModelTrainer:
-    def __init__(self, data_path='../data/hitters/vae_outfielders.csv'):
+class CatcherD1P4ModelTrainer:
+    def __init__(self, data_path='../../data/hitters/vae_catchers.csv'):
         self.data_path = data_path
         self.models = {}
         self.scalers = {}
@@ -18,13 +18,13 @@ class OutfielderD1P4ModelTrainer:
         self.feature_importance = {}
         
     def load_and_preprocess_data(self, exclude_columns=None):
-        """Load and preprocess the outfielder data, filtering to only D1 players"""
+        """Load and preprocess the catcher data, filtering to only D1 players"""
         print("Loading data...")
         df: pd.DataFrame = pd.read_csv(self.data_path)
         
         # Remove problematic columns with too many missing values
         if exclude_columns is None:
-            exclude_columns = ['hard_hit_p', 'position_velo']  # Keep of_velo
+            exclude_columns = ['hard_hit_p', 'position_velo']  # Keep c_velo
         
         # Also remove non-predictive columns and data leakage columns
         non_predictive = ['Unnamed: 0', 'name', 'link', 'commitment', 'college_location', 
@@ -54,10 +54,10 @@ class OutfielderD1P4ModelTrainer:
         print(f"Original shape: {df.shape}")
         print(f"Excluded columns: {exclude_columns}")
         
-        # Filter to only keep rows where of_velo is not missing
-        if 'of_velo' in df.columns:
-            df = pd.DataFrame(df.dropna(subset=['of_velo']))
-            print(f"Shape after filtering for valid of_velo: {df.shape}")
+        # Filter to only keep rows where c_velo is not missing
+        if 'c_velo' in df.columns:
+            df = pd.DataFrame(df.dropna(subset=['c_velo']))
+            print(f"Shape after filtering for valid c_velo: {df.shape}")
         
         # Filter to only D1 players (Non P4 D1 + Power 4 D1)
         target_col = 'three_section_commit_group'
@@ -198,10 +198,10 @@ class OutfielderD1P4ModelTrainer:
         # Evaluate
         self._evaluate_model(xgb_model, X_test, y_test, y_pred, y_pred_proba, 'XGBoost')
         
-        # Feature importance
+        # Store model and feature importance
+        self.models['XGBoost'] = xgb_model
         self.feature_importance['XGBoost'] = dict(zip(feature_names, xgb_model.feature_importances_))
         
-        self.models['XGBoost'] = xgb_model
         return xgb_model
     
     def _evaluate_model(self, model, X_test, y_test, y_pred, y_pred_proba, model_name):
@@ -210,64 +210,76 @@ class OutfielderD1P4ModelTrainer:
         print("=" * 50)
         
         # Classification report
-        print("\nClassification Report:")
-        print(classification_report(y_test, y_pred))
+        print("Classification Report:")
+        print(classification_report(y_test, y_pred, target_names=['Non P4 D1', 'Power 4 D1']))
         
         # Confusion matrix
-        print("\nConfusion Matrix:")
-        print(confusion_matrix(y_test, y_pred))
+        print("Confusion Matrix:")
+        cm = confusion_matrix(y_test, y_pred)
+        print(cm)
         
-        # ROC AUC (one-vs-rest)
-        try:
-            roc_auc = roc_auc_score(y_test, y_pred_proba[:, 1])  # Use positive class probability
-            print(f"\nROC AUC Score: {roc_auc:.4f}")
-        except:
-            print("Could not calculate ROC AUC")
+        # ROC AUC
+        roc_auc = roc_auc_score(y_test, y_pred_proba[:, 1])
+        print(f"ROC AUC: {roc_auc:.4f}")
         
-        # Cross-validation score
-        cv_scores = cross_val_score(model, X_test, y_test, cv=5, scoring='accuracy')
-        print(f"Cross-validation accuracy: {cv_scores.mean():.4f} (+/- {cv_scores.std() * 2:.4f})")
+        # Cross-validation scores for both ROC AUC and accuracy
+        cv_roc_auc = cross_val_score(model, X_test, y_test, cv=5, scoring='roc_auc')
+        cv_accuracy = cross_val_score(model, X_test, y_test, cv=5, scoring='accuracy')
+        print(f"Cross-validation ROC AUC: {cv_roc_auc.mean():.4f} (+/- {cv_roc_auc.std() * 2:.4f})")
+        print(f"Cross-validation Accuracy: {cv_accuracy.mean():.4f} (+/- {cv_accuracy.std() * 2:.4f})")
+        
+        return {
+            'classification_report': classification_report(y_test, y_pred, output_dict=True),
+            'confusion_matrix': cm,
+            'roc_auc': roc_auc,
+            'cv_roc_auc': cv_roc_auc,
+            'cv_accuracy': cv_accuracy
+        }
     
     def get_feature_importance_summary(self, top_n=10):
-        """Get feature importance summary across all models"""
-        print("\n=== Feature Importance Summary ===")
+        """Get feature importance summary for all models"""
+        print("\nFeature Importance Summary:")
+        print("=" * 50)
         
         for model_name, importance_dict in self.feature_importance.items():
-            print(f"\n{model_name} - Top {top_n} Features:")
+            print(f"\n{model_name}:")
             sorted_features = sorted(importance_dict.items(), key=lambda x: x[1], reverse=True)
-            for feature, importance in sorted_features[:top_n]:
-                print(f"  {feature}: {importance:.4f}")
+            for i, (feature, importance) in enumerate(sorted_features[:top_n]):
+                print(f"  {i+1}. {feature}: {importance:.4f}")
     
-    def save_models(self, output_dir='../ml/models/'):
-        """Save trained models and preprocessing objects"""
+    def save_models(self, output_dir='../models/'):
+        """Save trained models and preprocessing artifacts"""
         import os
         os.makedirs(output_dir, exist_ok=True)
         
-        # Save models
-        for model_name, model in self.models.items():
-            joblib.dump(model, f"{output_dir}/xgb_outfield_d1_p4_or_not.pkl")
+        # Save the best model (XGBoost)
+        best_model = self.models['XGBoost']
+        joblib.dump(best_model, os.path.join(output_dir, 'xgb_catcher_d1_p4_or_not.pkl'))
         
-        # Save preprocessing objects
-        joblib.dump(self.scalers, f"{output_dir}/scalers_outfield_d1_p4.pkl")
-        joblib.dump(self.label_encoders, f"{output_dir}/label_encoders_outfield_d1_p4.pkl")
+        # Save scaler
+        joblib.dump(self.scalers, os.path.join(output_dir, 'scalers_catcher_d1_p4.pkl'))
+        
+        # Save label encoders
+        joblib.dump(self.label_encoders, os.path.join(output_dir, 'label_encoders_catcher_d1_p4.pkl'))
         
         print(f"Models saved to {output_dir}")
+        print("Files saved:")
+        print("  - xgb_catcher_d1_p4_or_not.pkl")
+        print("  - scalers_catcher_d1_p4.pkl")
+        print("  - label_encoders_catcher_d1_p4.pkl")
 
 def main():
     """Main training function"""
-    print("Starting Outfielder D1 Power 4 vs Non-Power 4 Model Training...")
+    print("Starting Catcher D1 P4 vs Non-P4 Model Training")
+    print("=" * 60)
     
     # Initialize trainer
-    trainer = OutfielderD1P4ModelTrainer()
+    trainer = CatcherD1P4ModelTrainer()
     
     # Load and preprocess data
     X_train, X_test, y_train, y_test, feature_names = trainer.load_and_preprocess_data()
     
-    X_train = np.array(X_train)
-    X_test = np.array(X_test)
-
-    print(f"Training set shape: {X_train.shape}")
-    print(f"Test set shape: {X_test.shape}")
+    print(f"\nFeature names: {feature_names}")
     print(f"Number of features: {len(feature_names)}")
     
     # Train XGBoost model

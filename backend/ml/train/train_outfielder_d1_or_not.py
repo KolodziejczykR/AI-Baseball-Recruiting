@@ -15,8 +15,8 @@ import joblib
 import warnings
 warnings.filterwarnings('ignore')
 
-class InfielderModelTrainer:
-    def __init__(self, data_path='../data/hitters/vae_infielders.csv'):
+class OutfielderModelTrainer:
+    def __init__(self, data_path='../../data/hitters/vae_outfielders.csv'):
         self.data_path = data_path
         self.models = {}
         self.scalers = {}
@@ -24,13 +24,13 @@ class InfielderModelTrainer:
         self.feature_importance = {}
         
     def load_and_preprocess_data(self, exclude_columns=None):
-        """Load and preprocess the infielder data"""
+        """Load and preprocess the outfielder data"""
         print("Loading data...")
         df: pd.DataFrame = pd.read_csv(self.data_path)
         
         # Remove problematic columns with too many missing values
         if exclude_columns is None:
-            exclude_columns = ['hard_hit_p', 'position_velo']  # Keep inf_velo
+            exclude_columns = ['hard_hit_p', 'position_velo']  # Keep of_velo
         
         # Also remove non-predictive columns and data leakage columns
         non_predictive = ['Unnamed: 0', 'name', 'link', 'commitment', 'college_location', 
@@ -60,10 +60,10 @@ class InfielderModelTrainer:
         print(f"Original shape: {df.shape}")
         print(f"Excluded columns: {exclude_columns}")
         
-        # Filter to only keep rows where inf_velo is not missing
-        if 'inf_velo' in df.columns:
-            df = pd.DataFrame(df.dropna(subset=['inf_velo']))
-            print(f"Shape after filtering for valid inf_velo: {df.shape}")
+        # Filter to only keep rows where of_velo is not missing
+        if 'of_velo' in df.columns:
+            df = pd.DataFrame(df.dropna(subset=['of_velo']))
+            print(f"Shape after filtering for valid of_velo: {df.shape}")
         
         # Handle missing values for remaining columns
         df = self._handle_missing_values(df)
@@ -347,27 +347,27 @@ class InfielderModelTrainer:
             for feature, importance in sorted_features[:top_n]:
                 print(f"  {feature}: {importance:.4f}")
     
-    def save_models(self, output_dir='../ml/models/'):
+    def save_models(self, output_dir='../models/'):
         """Save trained models and preprocessing objects"""
         import os
         os.makedirs(output_dir, exist_ok=True)
         
         # Save models
         for model_name, model in self.models.items():
-            joblib.dump(model, f"{output_dir}/xgb_infield_d1_or_not.pkl")
+            joblib.dump(model, f"{output_dir}/xgb_outfield_d1_or_not.pkl")
         
         # Save preprocessing objects
-        joblib.dump(self.scalers, f"{output_dir}/scalers_infield.pkl")
-        joblib.dump(self.label_encoders, f"{output_dir}/label_encoders_infield.pkl")
+        joblib.dump(self.scalers, f"{output_dir}/scalers_outfield.pkl")
+        joblib.dump(self.label_encoders, f"{output_dir}/label_encoders_outfield.pkl")
         
         print(f"Models saved to {output_dir}")
 
 def main():
     """Main training function"""
-    print("Starting Infielder Model Training...")
+    print("Starting Outfielder Model Training...")
     
     # Initialize trainer
-    trainer = InfielderModelTrainer()
+    trainer = OutfielderModelTrainer()
     
     # Load and preprocess data
     X_train, X_test, y_train, y_test, feature_names = trainer.load_and_preprocess_data()

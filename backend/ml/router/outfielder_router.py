@@ -5,10 +5,10 @@ import os
 import sys
 
 # Use absolute path for models directory
-models_dir = os.path.join(os.path.dirname(__file__), 'models')
+models_dir = os.path.join(os.path.dirname(__file__), '..', 'models')
 
-sys.path.append(os.path.dirname(__file__))
-from outfielder_pipeline import OutfielderPredictionPipeline
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from pipeline.outfielder_pipeline import OutfielderPredictionPipeline
 
 router = APIRouter()
 

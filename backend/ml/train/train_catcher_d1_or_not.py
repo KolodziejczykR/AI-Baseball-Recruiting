@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold
 from sklearn.preprocessing import LabelEncoder, StandardScaler
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
 from sklearn.utils.class_weight import compute_class_weight
 import xgboost as xgb
@@ -15,8 +15,8 @@ import joblib
 import warnings
 warnings.filterwarnings('ignore')
 
-class OutfielderModelTrainer:
-    def __init__(self, data_path='../data/hitters/vae_outfielders.csv'):
+class CatcherModelTrainer:
+    def __init__(self, data_path='../../data/hitters/vae_catchers.csv'):
         self.data_path = data_path
         self.models = {}
         self.scalers = {}
@@ -24,13 +24,13 @@ class OutfielderModelTrainer:
         self.feature_importance = {}
         
     def load_and_preprocess_data(self, exclude_columns=None):
-        """Load and preprocess the outfielder data"""
+        """Load and preprocess the catcher data"""
         print("Loading data...")
         df: pd.DataFrame = pd.read_csv(self.data_path)
         
         # Remove problematic columns with too many missing values
         if exclude_columns is None:
-            exclude_columns = ['hard_hit_p', 'position_velo']  # Keep of_velo
+            exclude_columns = ['hard_hit_p', 'position_velo']  # Keep c_velo
         
         # Also remove non-predictive columns and data leakage columns
         non_predictive = ['Unnamed: 0', 'name', 'link', 'commitment', 'college_location', 
@@ -60,10 +60,10 @@ class OutfielderModelTrainer:
         print(f"Original shape: {df.shape}")
         print(f"Excluded columns: {exclude_columns}")
         
-        # Filter to only keep rows where of_velo is not missing
-        if 'of_velo' in df.columns:
-            df = pd.DataFrame(df.dropna(subset=['of_velo']))
-            print(f"Shape after filtering for valid of_velo: {df.shape}")
+        # Filter to only keep rows where c_velo is not missing
+        if 'c_velo' in df.columns:
+            df = pd.DataFrame(df.dropna(subset=['c_velo']))
+            print(f"Shape after filtering for valid c_velo: {df.shape}")
         
         # Handle missing values for remaining columns
         df = self._handle_missing_values(df)
@@ -202,10 +202,10 @@ class OutfielderModelTrainer:
         # Evaluate
         self._evaluate_model(xgb_model, X_test, y_test, y_pred, y_pred_proba, 'XGBoost')
         
-        # Feature importance
+        # Store model and feature importance
+        self.models['XGBoost'] = xgb_model
         self.feature_importance['XGBoost'] = dict(zip(feature_names, xgb_model.feature_importances_))
         
-        self.models['XGBoost'] = xgb_model
         return xgb_model
     
     def train_lightgbm(self, X_train, y_train, X_test, y_test, feature_names):
@@ -217,20 +217,24 @@ class OutfielderModelTrainer:
         
         # LightGBM parameters
         lgb_params = {
-            'objective': 'multiclass',
-            'num_class': 3,
-            'max_depth': 6,
-            'learning_rate': 0.1,
-            'n_estimators': 200,
-            'subsample': 0.8,
-            'colsample_bytree': 0.8,
-            'random_state': 42,
-            'class_weight': 'balanced'
+            'objective': 'binary',
+            'metric': 'binary_logloss',
+            'boosting_type': 'gbdt',
+            'num_leaves': 31,
+            'learning_rate': 0.05,
+            'feature_fraction': 0.9,
+            'bagging_fraction': 0.8,
+            'bagging_freq': 5,
+            'verbose': -1,  # Suppress all LightGBM warnings
+            'random_state': 42
         }
         
-        # Train model
-        lgb_model = lgb.LGBMClassifier(**lgb_params)
-        lgb_model.fit(X_resampled, y_resampled)
+        # Train model with warnings suppressed
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            lgb_model = lgb.LGBMClassifier(**lgb_params)
+            lgb_model.fit(X_resampled, y_resampled)
         
         # Predictions
         y_pred = lgb_model.predict(X_test)
@@ -239,10 +243,10 @@ class OutfielderModelTrainer:
         # Evaluate
         self._evaluate_model(lgb_model, X_test, y_test, y_pred, y_pred_proba, 'LightGBM')
         
-        # Feature importance
+        # Store model and feature importance
+        self.models['LightGBM'] = lgb_model
         self.feature_importance['LightGBM'] = dict(zip(feature_names, lgb_model.feature_importances_))
         
-        self.models['LightGBM'] = lgb_model
         return lgb_model
     
     def train_catboost(self, X_train, y_train, X_test, y_test, feature_names):
@@ -257,13 +261,13 @@ class OutfielderModelTrainer:
             'iterations': 200,
             'depth': 6,
             'learning_rate': 0.1,
-            'loss_function': 'MultiClass',
-            'random_seed': 42,
-            'class_weights': [1, 2, 4]  # Adjust based on class distribution
+            'loss_function': 'Logloss',
+            'random_state': 42,
+            'verbose': 0
         }
         
         # Train model
-        cb_model = cb.CatBoostClassifier(**cb_params, verbose=False)
+        cb_model = cb.CatBoostClassifier(**cb_params)
         cb_model.fit(X_resampled, y_resampled)
         
         # Predictions
@@ -273,45 +277,13 @@ class OutfielderModelTrainer:
         # Evaluate
         self._evaluate_model(cb_model, X_test, y_test, y_pred, y_pred_proba, 'CatBoost')
         
-        # Feature importance
+        # Store model and feature importance
+        self.models['CatBoost'] = cb_model
         self.feature_importance['CatBoost'] = dict(zip(feature_names, cb_model.feature_importances_))
         
-        self.models['CatBoost'] = cb_model
         return cb_model
     
-    def train_random_forest(self, X_train, y_train, X_test, y_test, feature_names):
-        """Train Random Forest model"""
-        print("\n=== Training Random Forest ===")
-        
-        # Handle class imbalance
-        X_resampled, y_resampled = self._handle_class_imbalance(X_train, y_train, 'smote')
-        
-        # Random Forest parameters
-        rf_params = {
-            'n_estimators': 200,
-            'max_depth': 10,
-            'min_samples_split': 5,
-            'min_samples_leaf': 2,
-            'random_state': 42,
-            'class_weight': 'balanced'
-        }
-        
-        # Train model
-        rf_model = RandomForestClassifier(**rf_params)
-        rf_model.fit(X_resampled, y_resampled)
-        
-        # Predictions
-        y_pred = rf_model.predict(X_test)
-        y_pred_proba = rf_model.predict_proba(X_test)
-        
-        # Evaluate
-        self._evaluate_model(rf_model, X_test, y_test, y_pred, y_pred_proba, 'Random Forest')
-        
-        # Feature importance
-        self.feature_importance['Random Forest'] = dict(zip(feature_names, rf_model.feature_importances_))
-        
-        self.models['Random Forest'] = rf_model
-        return rf_model
+
     
     def _evaluate_model(self, model, X_test, y_test, y_pred, y_pred_proba, model_name):
         """Evaluate model performance"""
@@ -319,68 +291,82 @@ class OutfielderModelTrainer:
         print("=" * 50)
         
         # Classification report
-        print("\nClassification Report:")
-        print(classification_report(y_test, y_pred))
+        print("Classification Report:")
+        print(classification_report(y_test, y_pred, target_names=['Non D1', 'D1']))
         
         # Confusion matrix
-        print("\nConfusion Matrix:")
-        print(confusion_matrix(y_test, y_pred))
+        print("Confusion Matrix:")
+        cm = confusion_matrix(y_test, y_pred)
+        print(cm)
         
-        # ROC AUC (one-vs-rest)
-        try:
-            roc_auc = roc_auc_score(y_test, y_pred_proba, multi_class='ovr')
-            print(f"\nROC AUC Score: {roc_auc:.4f}")
-        except:
-            print("Could not calculate ROC AUC")
+        # ROC AUC
+        roc_auc = roc_auc_score(y_test, y_pred_proba[:, 1])
+        print(f"ROC AUC: {roc_auc:.4f}")
         
-        # Cross-validation score
-        cv_scores = cross_val_score(model, X_test, y_test, cv=5, scoring='accuracy')
-        print(f"Cross-validation accuracy: {cv_scores.mean():.4f} (+/- {cv_scores.std() * 2:.4f})")
+        # Cross-validation scores for both ROC AUC and accuracy
+        cv_roc_auc = cross_val_score(model, X_test, y_test, cv=5, scoring='roc_auc')
+        cv_accuracy = cross_val_score(model, X_test, y_test, cv=5, scoring='accuracy')
+        print(f"Cross-validation ROC AUC: {cv_roc_auc.mean():.4f} (+/- {cv_roc_auc.std() * 2:.4f})")
+        print(f"Cross-validation Accuracy: {cv_accuracy.mean():.4f} (+/- {cv_accuracy.std() * 2:.4f})")
+        
+        return {
+            'classification_report': classification_report(y_test, y_pred, output_dict=True),
+            'confusion_matrix': cm,
+            'roc_auc': roc_auc,
+            'cv_roc_auc': cv_roc_auc,
+            'cv_accuracy': cv_accuracy
+        }
     
     def get_feature_importance_summary(self, top_n=10):
-        """Get feature importance summary across all models"""
-        print("\n=== Feature Importance Summary ===")
+        """Get feature importance summary for all models"""
+        print("\nFeature Importance Summary:")
+        print("=" * 50)
         
         for model_name, importance_dict in self.feature_importance.items():
-            print(f"\n{model_name} - Top {top_n} Features:")
+            print(f"\n{model_name}:")
             sorted_features = sorted(importance_dict.items(), key=lambda x: x[1], reverse=True)
-            for feature, importance in sorted_features[:top_n]:
-                print(f"  {feature}: {importance:.4f}")
+            for i, (feature, importance) in enumerate(sorted_features[:top_n]):
+                print(f"  {i+1}. {feature}: {importance:.4f}")
     
-    def save_models(self, output_dir='../ml/models/'):
-        """Save trained models and preprocessing objects"""
+    def save_models(self, output_dir='../models/'):
+        """Save trained models and preprocessing artifacts"""
         import os
         os.makedirs(output_dir, exist_ok=True)
         
-        # Save models
-        for model_name, model in self.models.items():
-            joblib.dump(model, f"{output_dir}/xgb_outfield_d1_or_not.pkl")
+        # Save the best model (XGBoost)
+        best_model = self.models['XGBoost']
+        joblib.dump(best_model, os.path.join(output_dir, 'xgb_catcher_d1_or_not.pkl'))
         
-        # Save preprocessing objects
-        joblib.dump(self.scalers, f"{output_dir}/scalers_outfield.pkl")
-        joblib.dump(self.label_encoders, f"{output_dir}/label_encoders_outfield.pkl")
+        # Save scaler
+        joblib.dump(self.scalers, os.path.join(output_dir, 'scalers_catcher.pkl'))
+        
+        # Save label encoders
+        joblib.dump(self.label_encoders, os.path.join(output_dir, 'label_encoders_catcher.pkl'))
         
         print(f"Models saved to {output_dir}")
+        print("Files saved:")
+        print("  - xgb_catcher_d1_or_not.pkl")
+        print("  - scalers_catcher.pkl")
+        print("  - label_encoders_catcher.pkl")
 
 def main():
     """Main training function"""
-    print("Starting Outfielder Model Training...")
+    print("Starting Catcher D1 vs Non-D1 Model Training")
+    print("=" * 60)
     
     # Initialize trainer
-    trainer = OutfielderModelTrainer()
+    trainer = CatcherModelTrainer()
     
     # Load and preprocess data
     X_train, X_test, y_train, y_test, feature_names = trainer.load_and_preprocess_data()
-
-    X_train = np.array(X_train)
-    X_test = np.array(X_test)
     
-    print(f"Training set shape: {X_train.shape}")
-    print(f"Test set shape: {X_test.shape}")
+    print(f"\nFeature names: {feature_names}")
     print(f"Number of features: {len(feature_names)}")
     
-    # Train XGBoost model only
+    # Train models
     trainer.train_xgboost(X_train, y_train, X_test, y_test, feature_names)
+    trainer.train_lightgbm(X_train, y_train, X_test, y_test, feature_names)
+    trainer.train_catboost(X_train, y_train, X_test, y_test, feature_names)
     
     # Get feature importance summary
     trainer.get_feature_importance_summary()
