@@ -87,7 +87,7 @@ Each position has consistent endpoints:
 - `GET /{position}/example` - Get example input
 
 ### Key Features
-**Common Features**: height, weight, exit_velo_max, hand_speed_max, bat_speed_max, sixty_time, throwing_hand, hitting_handedness, player_region, primary_position
+**Common Features**: height, weight, exit_velo_max, sixty_time, throwing_hand, hitting_handedness, player_region, primary_position
 
 **Position-Specific Features**:
 - **Infielders**: `inf_velo` (infield velocity)
