@@ -374,7 +374,7 @@ best_svm_params = study_svm.best_params
 # ============================================================================
 # CREATE WEIGHTED ENSEMBLE
 # ============================================================================
-print("\n🎯 Creating Weighted Ensemble (XGB: 30%, CAT: 30%, LGB: 20%, SVM: 20%)...")
+print("\n🎯 Creating Weighted Ensemble (XGB: 35%, CAT: 15%, LGB: 30%, SVM: 20%)...")
 
 # Train individual models with best parameters
 xgb_model = xgb.XGBClassifier(**best_xgb_params, n_estimators=500, random_state=42)
@@ -401,8 +401,8 @@ def weighted_ensemble_predict_proba(X, X_scaled):
     svm_proba = svm_model.predict_proba(X_scaled)[:, 1]
     
     # Weighted combination
-    ensemble_proba = (xgb_proba * 0.3 + cat_proba * 0.3 + 
-                     lgb_proba * 0.2 + svm_proba * 0.2)
+    ensemble_proba = (xgb_proba * 0.35 + cat_proba * 0.15 + 
+                     lgb_proba * 0.3 + svm_proba * 0.2)
     
     return ensemble_proba
 

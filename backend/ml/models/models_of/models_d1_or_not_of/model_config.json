@@ -1,0 +1,67 @@
+{
+  "model_version": "v2_20250804_192917",
+  "creation_date": "2025-08-04T19:29:17.065092",
+  "model_type": "hierarchical_ensemble_outfielder_d1",
+  "performance_metrics": {
+    "accuracy": 0.7496307237813885,
+    "balanced_accuracy": 0.6851366685339193,
+    "f1_score": 0.5298196948682385,
+    "d1_recall": 0.553623188405797,
+    "d1_precision": 0.5079787234042553,
+    "fp_fn_ratio": 1.2012987012987013,
+    "optimal_threshold": 0.6200000000000001
+  },
+  "hyperparameters": {
+    "xgb_params": {
+      "eta": 0.02128376752636116,
+      "max_depth": 5,
+      "min_child_weight": 23,
+      "gamma": 3.7267765819986076,
+      "subsample": 0.7164500364087706,
+      "colsample_bytree": 0.6796311168575789,
+      "reg_alpha": 0.2499356567410769,
+      "reg_lambda": 13.398228472515266
+    },
+    "dnn_params": {
+      "hidden_layer_sizes": [
+        64
+      ],
+      "activation": "tanh",
+      "alpha": 0.01674970620960853,
+      "learning_rate_init": 0.00010055092646209219
+    },
+    "lgb_params": {
+      "num_leaves": 74,
+      "learning_rate": 0.01689996657697358,
+      "feature_fraction": 0.6781930149634336,
+      "bagging_fraction": 0.8607903020953139,
+      "bagging_freq": 3,
+      "min_child_samples": 94,
+      "reg_alpha": 9.652490224395523,
+      "reg_lambda": 0.009173235561225292
+    },
+    "svm_params": {
+      "C": 0.0015872996409005496,
+      "gamma": "scale",
+      "kernel": "sigmoid"
+    }
+  },
+  "ensemble_weights": {
+    "XGB": 0.34201478021290926,
+    "LGB": 0.3284658774769614,
+    "DNN": 0.32951934231012947,
+    "SVM": 0.0
+  },
+  "hierarchical_weights": {
+    "elite_weight": 0.4,
+    "ensemble_weight": 0.6
+  },
+  "class_weight_ratio": 1.3880597014925373,
+  "elite_threshold": 47.1912091556382,
+  "optimal_prediction_threshold": 0.6200000000000001,
+  "dataset_info": {
+    "total_samples": 6766,
+    "d1_rate": 0.2548034289092521,
+    "elite_rate": 0.5499556606562223
+  }
+}
