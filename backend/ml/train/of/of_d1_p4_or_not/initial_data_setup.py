@@ -1,0 +1,41 @@
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, fbeta_score, f1_score
+import xgboost as xgb
+import optuna
+
+# Load data
+csv_path = '/Users/ryankolodziejczyk/Documents/AI Baseball Recruitment/code/backend/data/hitters/vae_outfielders.csv'
+og_df = pd.read_csv(csv_path)
+
+# keep only d1 talent
+og_df = og_df[og_df['three_section_commit_group'].str.lower() != 'non d1']
+og_df['p4_or_not'] = (og_df['three_section_commit_group'].str.lower() != 'non p4 d1').astype(int)
+
+keep_columns = ['p4_or_not', 'primary_position', 'height', 'weight', 'sixty_time',
+                'of_velo', 'player_region', 'exit_velo_max', 'throwing_hand', 'hitting_handedness'] 
+
+og_df = pd.DataFrame(og_df[keep_columns])
+
+# The scraper flipped the order of 'throwing_hand' and 'hitting_handedness', so swap their values
+og_df['throwing_hand'], og_df['hitting_handedness'] = og_df['hitting_handedness'], og_df['throwing_hand']
+
+og_df['throwing_hand'] = og_df['throwing_hand'].str.strip()
+og_df['hitting_handedness'] = og_df['hitting_handedness'].str.strip()
+
+valid_throwing_hands = ['L', 'R']
+valid_hitting_hands = ['R', 'L', 'S']
+
+mask_hitting = og_df['hitting_handedness'].isin(valid_hitting_hands)
+mask_throwing = og_df['throwing_hand'].isin(valid_throwing_hands)
+og_df = og_df[mask_hitting & mask_throwing]
+
+# already downloaded / saved
+# og_df.to_csv('/Users/ryankolodziejczyk/Documents/AI Baseball Recruitment/code/backend/data/hitters/of_p4_or_not_data.csv', index=False)
+
+na_counts = og_df.isnull().sum()
+print("NA value counts per column:")
+print(na_counts)
+
+print(f"Total number of rows: {len(og_df)}")
