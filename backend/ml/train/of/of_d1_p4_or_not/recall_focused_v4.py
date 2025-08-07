@@ -6,8 +6,7 @@ Target: Maintain 70%+ accuracy while maximizing P4 recall
 
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
 from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import StandardScaler
@@ -19,8 +18,7 @@ import joblib
 import json
 import optuna
 from optuna.samplers import TPESampler
-import seaborn as sns
-import matplotlib.pyplot as plt
+
 
 print("🎯 P4 RECALL-FOCUSED OUTFIELDER MODEL V4")
 print("="*80)

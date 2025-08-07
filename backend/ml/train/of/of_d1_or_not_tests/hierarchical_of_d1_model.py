@@ -1,8 +1,7 @@
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score, recall_score, balanced_accuracy_score, precision_score
-from sklearn.ensemble import VotingClassifier
 from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
 import xgboost as xgb

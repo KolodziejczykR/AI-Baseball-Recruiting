@@ -1,9 +1,5 @@
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, fbeta_score, f1_score
-import xgboost as xgb
-import optuna
 
 # Load data
 csv_path = '/Users/ryankolodziejczyk/Documents/AI Baseball Recruitment/code/backend/data/hitters/vae_outfielders.csv'
