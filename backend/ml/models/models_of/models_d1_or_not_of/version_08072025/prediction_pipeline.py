@@ -146,18 +146,3 @@ def predict_outfielder_d1_probability(player_data, models_dir):
         'threshold_used': float(config['optimal_prediction_threshold']),
         'model_version': config['model_version']
     }
-
-# Example usage:
-# result = predict_outfielder_d1_probability(
-#     player_data={
-#         'height': 73,
-#         'weight': 190,
-#         'sixty_time': 6.8,
-#         'exit_velo_max': 95,
-#         'of_velo': 85,
-#         'player_region': 'West',
-#         'throwing_hand': 'Right',
-#         'hitting_handedness': 'Right'
-#     },
-#     models_dir='/path/to/models/directory'
-# )
