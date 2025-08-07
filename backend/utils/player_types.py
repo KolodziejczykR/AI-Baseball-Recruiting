@@ -67,6 +67,28 @@ class PlayerCatcher(PlayerType):
     def get_player_type(self) -> str:
         return "Catcher"
 
+    def to_dict(self) -> dict:
+        """
+        Convert PlayerCatcher to dictionary format expected by ML models.
+        """
+        return {
+            'height': self.height,
+            'weight': self.weight,
+            'sixty_time': self.sixty_time,
+            'exit_velo_max': self.exit_velo_max,
+            'c_velo': self.c_velo,
+            'pop_time': self.pop_time,
+            'player_region': self.region,
+            'throwing_hand': self.throwing_hand,
+            'hitting_handedness': self.hitting_handedness
+        }
+    
+    def __str__(self):
+        """
+        Returns a string representation of the PlayerCatcher object, showing its attributes in dictionary format.
+        """
+        return self.to_dict().__str__()
+
 
 class PlayerInfielder(PlayerType):
     def __init__(
@@ -103,6 +125,27 @@ class PlayerInfielder(PlayerType):
 
     def get_player_type(self) -> str:
         return "Infielder"
+    
+    def to_dict(self) -> dict:
+        """
+        Convert PlayerCatcher to dictionary format expected by ML models.
+        """
+        return {
+            'height': self.height,
+            'weight': self.weight,
+            'sixty_time': self.sixty_time,
+            'exit_velo_max': self.exit_velo_max,
+            'inf_velo': self.inf_velo,
+            'player_region': self.region,
+            'throwing_hand': self.throwing_hand,
+            'hitting_handedness': self.hitting_handedness
+        }
+    
+    def __str__(self):
+        """
+        Returns string representation of the PlayerInfielder object, showing its attributes in dictionary format.
+        """
+        return self.to_dict().__str__()
 
 
 class PlayerOutfielder(PlayerType):
@@ -156,6 +199,12 @@ class PlayerOutfielder(PlayerType):
             'throwing_hand': self.throwing_hand,
             'hitting_handedness': self.hitting_handedness
         }
+    
+    def __str__(self):
+        """
+        Returns string representation of the PlayerOutfielder object, showing its attributes in dictionary format.
+        """
+        return self.to_dict().__str__()
 
 
 class PlayerPitcher(PlayerType):

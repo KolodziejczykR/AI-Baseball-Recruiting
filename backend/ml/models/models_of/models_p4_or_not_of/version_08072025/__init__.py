@@ -1,0 +1,1 @@
+from .prediction_pipeline import predict_outfielder_p4_probability
