@@ -1,0 +1,78 @@
+{
+  "model_version": "v4_20250807_105039",
+  "training_date": "2025-08-07T10:50:39.926264",
+  "model_type": "Hierarchical P4 Ensemble",
+  "target": "P4 college level prediction for outfielders",
+  "performance": {
+    "test_accuracy": 0.7333333333333333,
+    "test_p4_recall": 0.6933333333333334,
+    "test_p4_precision": 0.5714285714285714,
+    "test_f1_score": 0.6265060240963856,
+    "validation_accuracy": 0.7126436781609196,
+    "validation_p4_recall": 0.6460176991150443,
+    "validation_p4_precision": 0.6460176991150443
+  },
+  "thresholds": {
+    "elite_threshold": 0.3799999999999999,
+    "non_elite_threshold": 0.4
+  },
+  "ensemble_weights": {
+    "xgb": 0.247777049119331,
+    "lgb": 0.24586455324710357,
+    "mlp": 0.2504281255959109,
+    "svm": 0.25593027203765456
+  },
+  "cv_scores": {
+    "xgb": 0.6773700539110975,
+    "lgb": 0.6721416946394059,
+    "mlp": 0.6846175363645611,
+    "svm": 0.6996592411758722
+  },
+  "hyperparameters": {
+    "xgb": {
+      "pos_weight_mult": 1.005450046164119,
+      "max_depth": 5,
+      "eta": 0.012761330299930217,
+      "subsample": 0.7682281106533626,
+      "colsample_bytree": 0.8269448607294371,
+      "reg_alpha": 0.13561029309880077,
+      "reg_lambda": 1.2239792974588457
+    },
+    "lgb": {
+      "pos_weight_mult": 1.1735344385380024,
+      "num_leaves": 45,
+      "learning_rate": 0.010742885131253967,
+      "feature_fraction": 0.833487131811843,
+      "bagging_fraction": 0.8234852267016323,
+      "bagging_freq": 5,
+      "min_child_samples": 11,
+      "reg_alpha": 0.532274564736547,
+      "reg_lambda": 0.7651545271128234
+    },
+    "mlp": {
+      "n_layers": 1,
+      "layer_0": 96,
+      "activation": "tanh",
+      "alpha": 0.0024640972516521737,
+      "learning_rate_init": 0.00011214851190139907
+    },
+    "svm": {
+      "C": 0.05688916715623047,
+      "kernel": "rbf",
+      "gamma": "auto",
+      "pos_weight_mult": 1.1270086151062257
+    }
+  },
+  "training_config": {
+    "train_size": 1508,
+    "val_size": 348,
+    "test_size": 465,
+    "class_weight_ratio": 2.0901639344262297,
+    "optuna_trials": {
+      "xgb": 75,
+      "lgb": 75,
+      "mlp": 75,
+      "svm": 75
+    }
+  }
+}
