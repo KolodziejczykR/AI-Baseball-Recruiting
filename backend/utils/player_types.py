@@ -39,7 +39,8 @@ class PlayerCatcher(PlayerType):
         region: str,
         exit_velo_max: float,
         c_velo: float,
-        pop_time: float
+        pop_time: float,
+        sixty_time: float
     ):
         """
         Initialize a PlayerCatcher object.
@@ -59,6 +60,7 @@ class PlayerCatcher(PlayerType):
         self.inf_velo = c_velo
         self.pop_time = pop_time
         self.exit_velo_max = exit_velo_max
+        self.sixty_time = sixty_time
         self.hitting_handedness = hitting_handedness
         self.throwing_hand = throwing_hand
     
@@ -76,7 +78,8 @@ class PlayerInfielder(PlayerType):
         throwing_hand: str,
         region: str,
         exit_velo_max: float,
-        inf_velo: float
+        inf_velo: float,
+        sixty_time: float
     ):
         """
         Initialize a PlayerInfielder object.
@@ -94,6 +97,7 @@ class PlayerInfielder(PlayerType):
         super().__init__(height, weight, region, primary_position)
         self.inf_velo = inf_velo
         self.exit_velo_max = exit_velo_max
+        self.sixty_time = sixty_time
         self.hitting_handedness = hitting_handedness
         self.throwing_hand = throwing_hand
 
@@ -112,6 +116,7 @@ class PlayerOutfielder(PlayerType):
         region: str,
         exit_velo_max: float,
         of_velo: float,
+        sixty_time: float
     ):
         """
         Initialize a PlayerOutfielder object.
@@ -125,15 +130,32 @@ class PlayerOutfielder(PlayerType):
         region (str): Region of the player (e.g., 'West', 'South', 'Northeast', 'Midwest)
         of_velo (float): Outfield velocity (mph)
         exit_velo_max (float): Maximum exit velocity (mph)
+        sixty_time (float): 60-yard dash time (seconds)
         """
         super().__init__(height, weight, region, primary_position)
         self.of_velo = of_velo
         self.exit_velo_max = exit_velo_max
+        self.sixty_time = sixty_time
         self.hitting_handedness = hitting_handedness
         self.throwing_hand = throwing_hand
 
     def get_player_type(self) -> str:
         return "Outfielder"
+    
+    def to_dict(self) -> dict:
+        """
+        Convert PlayerOutfielder to dictionary format expected by ML models.
+        """
+        return {
+            'height': self.height,
+            'weight': self.weight,
+            'sixty_time': self.sixty_time,
+            'exit_velo_max': self.exit_velo_max,
+            'of_velo': self.of_velo,
+            'player_region': self.region,
+            'throwing_hand': self.throwing_hand,
+            'hitting_handedness': self.hitting_handedness
+        }
 
 
 class PlayerPitcher(PlayerType):
