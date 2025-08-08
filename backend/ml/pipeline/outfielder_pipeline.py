@@ -20,8 +20,8 @@ class OutfielderPredictionPipeline:
         """
         Initialize the outfielder prediction pipeline using the latest production models.
         """
-        print("Successfully loaded outfielder prediction pipeline functions")
-    
+        pass
+
     def predict(self, player: PlayerOutfielder) -> dict:
         """
         Run the complete two-stage outfielder prediction pipeline.
@@ -154,8 +154,8 @@ if __name__ == "__main__":
         primary_position='OF',
         hitting_handedness='S',
         throwing_hand='R', 
-        region='East',
-        exit_velo_max=80.0,
+        region='South',
+        exit_velo_max=85.0,
         of_velo=78.0,
         sixty_time=7.2
     )
