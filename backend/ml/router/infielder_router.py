@@ -27,8 +27,8 @@ class InfielderInput(BaseModel):
     """Input validation model for infielder predictions"""
     
     # Required numerical features
-    height: float = Field(..., ge=60, le=84, description="Player height in inches")
-    weight: float = Field(..., ge=120, le=300, description="Player weight in pounds")
+    height: int = Field(..., ge=60, le=84, description="Player height in inches")
+    weight: int = Field(..., ge=120, le=300, description="Player weight in pounds")
     sixty_time: float = Field(..., ge=5.0, le=10.0, description="60-yard dash time in seconds")
     exit_velo_max: float = Field(..., ge=50, le=130, description="Maximum exit velocity in mph")
     inf_velo: float = Field(..., ge=50, le=100, description="Infield velocity in mph")

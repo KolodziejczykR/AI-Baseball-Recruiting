@@ -1,7 +1,17 @@
 import pandas as pd
 import numpy as np
 import joblib
+import sys
 import os
+
+# Add project root to path for imports
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../../..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+from backend.utils.elite_weighting_constants import (
+    ELITE_EXIT_VELO_MAX, ELITE_INF_VELO, ELITE_SIXTY_TIME_INF, ELITE_HEIGHT_MIN
+)
 
 def predict_infielder_d1_probability(player_data, models_dir):
     """
@@ -92,12 +102,98 @@ def predict_infielder_d1_probability(player_data, models_dir):
     cb_proba = cb_model.predict_proba(df_scaled)[0, 1]
     svm_proba = svm_model.predict_proba(df_scaled)[0, 1]
     
-    # Calculate weighted ensemble probability
+    # ELITE PLAYER DETECTION AND ADAPTIVE ENSEMBLE
+    # Check for elite characteristics using imported constants
+    elite_thresholds = {
+        'exit_velo_max': ELITE_EXIT_VELO_MAX,
+        'inf_velo': ELITE_INF_VELO,
+        'sixty_time_max': ELITE_SIXTY_TIME_INF, 
+        'height_min': ELITE_HEIGHT_MIN
+    }
+    
+    elite_score = 0
+    elite_indicators = []
+    
+    if player_data.get('exit_velo_max', 0) >= elite_thresholds['exit_velo_max']:
+        elite_score += 2
+        elite_indicators.append(f"Elite exit velocity: {player_data['exit_velo_max']} mph")
+    
+    if player_data.get('inf_velo', 0) >= elite_thresholds['inf_velo']:
+        elite_score += 2  
+        elite_indicators.append(f"Elite infield velocity: {player_data['inf_velo']} mph")
+    
+    if player_data.get('sixty_time', 10) <= elite_thresholds['sixty_time_max']:
+        elite_score += 2
+        elite_indicators.append(f"Elite speed: {player_data['sixty_time']} seconds")
+    
+    if player_data.get('height', 0) >= elite_thresholds['height_min']:
+        elite_score += 1
+        elite_indicators.append(f"Elite height: {player_data['height']} inches")
+    
+    # Count feature outliers  
+    extreme_features = np.sum(np.abs(df_scaled) > 3.0)
+    outlier_ratio = extreme_features / len(df_scaled.flatten())
+    
+    # CONFIDENCE-BASED WEIGHT REDISTRIBUTION
+    is_elite = elite_score >= 4
+    is_super_elite = elite_score >= 6
     weights = ensemble_metadata['weights']
-    ensemble_prob = (xgb_proba * weights[0] + 
-                    lgb_proba * weights[1] + 
-                    cb_proba * weights[2] + 
-                    svm_proba * weights[3])
+    individual_d1_probs = [xgb_proba, lgb_proba, cb_proba, svm_proba]
+    
+    # Calculate confidence scores based on how far predictions are from 0.5 (uncertainty)
+    confidence_scores = [2 * abs(prob - 0.5) for prob in individual_d1_probs]  # 0-1 scale
+    
+    # Apply confidence multipliers
+    confidence_multipliers = []
+    for conf_score in confidence_scores:
+        if conf_score >= 0.6:  # High confidence (80%+ or 20%-)
+            multiplier = 1.5
+        elif conf_score >= 0.2:  # Medium confidence (60-80% or 20-40%)
+            multiplier = 1.0
+        else:  # Low confidence (40-60%)
+            multiplier = 0.4
+        confidence_multipliers.append(multiplier)
+    
+    # Apply confidence multipliers to base weights
+    confidence_adjusted_weights = [base_weight * mult for base_weight, mult in zip(weights, confidence_multipliers)]
+    
+    # Normalize weights to sum to 1.0
+    weight_sum = sum(confidence_adjusted_weights)
+    confidence_adjusted_weights = [w / weight_sum for w in confidence_adjusted_weights]
+    
+    # Adaptive ensemble weighting (keeping elite detection but adding confidence weighting)
+    if is_super_elite and svm_proba > 0.9:
+        # Super elite + very confident SVM = SVM dominant
+        adjusted_weights = [0.1, 0.1, 0.1, 0.7]
+        strategy = 'super_elite_svm_dominant'
+    elif is_elite and svm_proba > 0.8:
+        # Elite + confident SVM = boost SVM
+        adjusted_weights = [0.15, 0.15, 0.15, 0.55]  
+        strategy = 'elite_svm_boosted'
+    elif outlier_ratio > 0.3:
+        # High outliers = moderate SVM boost
+        adjusted_weights = [0.2, 0.2, 0.2, 0.4]
+        strategy = 'outlier_svm_boosted'
+    else:
+        # Use confidence-based weighting as the standard approach
+        adjusted_weights = confidence_adjusted_weights
+        strategy = 'confidence_based_ensemble'
+    
+    # Calculate ensemble probability with adaptive weights
+    ensemble_prob = (xgb_proba * adjusted_weights[0] + 
+                    lgb_proba * adjusted_weights[1] + 
+                    cb_proba * adjusted_weights[2] + 
+                    svm_proba * adjusted_weights[3])
+    
+    # Enhanced confidence calculation
+    if svm_proba > 0.9 and is_elite:
+        confidence = "high"
+    elif ensemble_prob > 0.7 or ensemble_prob < 0.3:
+        confidence = "high" 
+    elif ensemble_prob > 0.6 or ensemble_prob < 0.4:
+        confidence = "medium"
+    else:
+        confidence = "low"
     
     # Final prediction (ensemble uses soft voting, so threshold is 0.5)
     prediction = ensemble_prob >= 0.5
@@ -106,7 +202,27 @@ def predict_infielder_d1_probability(player_data, models_dir):
         'player_id': player_data.get('player_id', 'unknown'),
         'd1_probability': float(ensemble_prob),
         'd1_prediction': bool(prediction),
-        'confidence_level': 'high' if abs(ensemble_prob - 0.5) > 0.3 else 'medium' if abs(ensemble_prob - 0.5) > 0.15 else 'low',
+        'confidence_level': confidence,
+        'elite_detection': {
+            'is_elite': is_elite,
+            'is_super_elite': is_super_elite,
+            'elite_score': elite_score,
+            'elite_indicators': elite_indicators,
+            'strategy_used': strategy
+        },
+        'outlier_info': {
+            'extreme_features': int(extreme_features),
+            'outlier_ratio': float(outlier_ratio)
+        },
+        'ensemble_weights': {
+            'original': weights,
+            'confidence_adjusted': confidence_adjusted_weights,
+            'final_adjusted': adjusted_weights
+        },
+        'confidence_analysis': {
+            'confidence_scores': dict(zip(['xgboost', 'lightgbm', 'catboost', 'svm'], [float(x) for x in confidence_scores])),
+            'confidence_multipliers': dict(zip(['xgboost', 'lightgbm', 'catboost', 'svm'], confidence_multipliers))
+        },
         'components': {
             'individual_models': {
                 'xgboost': float(xgb_proba),
@@ -116,5 +232,5 @@ def predict_infielder_d1_probability(player_data, models_dir):
             }
         },
         'threshold_used': 0.5,
-        'model_version': ensemble_metadata.get('model_type', 'ensemble_v1')
+        'model_version': ensemble_metadata.get('model_type', 'VotingClassifier_WeightedSoft')
     }

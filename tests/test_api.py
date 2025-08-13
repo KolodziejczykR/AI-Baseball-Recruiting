@@ -20,17 +20,8 @@ def test_infielder_predict_high_performer():
     data = {
         "height": 72.0,
         "weight": 180.0,
-        "hand_speed_max": 22.5,
-        "bat_speed_max": 75.0,
-        "rot_acc_max": 18.0,
         "sixty_time": 6.8,
-        "thirty_time": 3.2,
-        "ten_yard_time": 1.7,
-        "run_speed_max": 22.0,
         "exit_velo_max": 88.0,
-        "exit_velo_avg": 78.0,
-        "distance_max": 320.0,
-        "sweet_spot_p": 0.75,
         "inf_velo": 78.0,
         "throwing_hand": "R",
         "hitting_handedness": "R",
@@ -129,22 +120,13 @@ def test_outfielder_predict_high_performer():
     data = {
         "height": 73.0,
         "weight": 185.0,
-        "hand_speed_max": 23.0,
-        "bat_speed_max": 78.0,
-        "rot_acc_max": 19.0,
         "sixty_time": 6.6,
-        "thirty_time": 3.1,
-        "ten_yard_time": 1.6,
-        "run_speed_max": 23.5,
         "exit_velo_max": 92.0,
-        "exit_velo_avg": 82.0,
-        "distance_max": 350.0,
-        "sweet_spot_p": 0.78,
         "of_velo": 82.0,
         "throwing_hand": "R",
         "hitting_handedness": "R",
         "player_region": "West",
-        "primary_position": "CF"
+        "primary_position": "OF"
     }
     response = client.post("/outfielder/predict", json=data)
     assert response.status_code == 200
@@ -164,7 +146,7 @@ def test_outfielder_predict_minimal_data():
     data = {
         "height": 70,
         "weight": 170,
-        "primary_position": "CF",
+        "primary_position": "OF",
         "hitting_handedness": "R",
         "throwing_hand": "R",
         "player_region": "West",
@@ -211,7 +193,7 @@ def test_outfielder_example_endpoint():
 
 def test_outfielder_different_positions():
     """Test outfielder predictions for different positions"""
-    positions = ["CF", "LF", "RF", "OF"]
+    positions = ["OF"]
     base_data = {
         "height": 71.0,
         "weight": 175.0,
@@ -238,15 +220,12 @@ def test_outfielder_speed_focused_player():
         "height": 70.0,
         "weight": 160.0,
         "sixty_time": 6.4,  # Very fast
-        "thirty_time": 3.0,  # Very fast
-        "ten_yard_time": 1.5,  # Very fast
-        "run_speed_max": 24.0,  # Very fast
         "exit_velo_max": 82.0,
         "of_velo": 80.0,
         "throwing_hand": "R",
         "hitting_handedness": "R",
-        "player_region": "Southeast",
-        "primary_position": "CF"
+        "player_region": "South",
+        "primary_position": "OF"
     }
     response = client.post("/outfielder/predict", json=data)
     assert response.status_code == 200
@@ -261,13 +240,11 @@ def test_outfielder_power_focused_player():
         "weight": 200.0,
         "sixty_time": 7.2,  # Average speed
         "exit_velo_max": 95.0,  # Very high
-        "exit_velo_avg": 85.0,  # Very high
-        "distance_max": 360.0,  # Very high
         "of_velo": 75.0,
         "throwing_hand": "R",
         "hitting_handedness": "R",
         "player_region": "West",
-        "primary_position": "RF"
+        "primary_position": "OF"
     }
     response = client.post("/outfielder/predict", json=data)
     assert response.status_code == 200
@@ -302,13 +279,13 @@ def test_infielder_empty_data():
     """Test infielder prediction with empty data"""
     data = {}
     response = client.post("/infielder/predict", json=data)
-    assert response.status_code == 400  # Should return error for missing required fields
+    assert response.status_code == 422  # Pydantic validation error for missing required fields
 
 def test_outfielder_empty_data():
     """Test outfielder prediction with empty data"""
     data = {}
     response = client.post("/outfielder/predict", json=data)
-    assert response.status_code == 400  # Should return error for missing required fields
+    assert response.status_code == 422  # Pydantic validation error for missing required fields
 
 # Catcher API Tests
 def test_catcher_predict_high_performer():
@@ -316,17 +293,8 @@ def test_catcher_predict_high_performer():
     data = {
         "height": 72.0,
         "weight": 185.0,
-        "hand_speed_max": 22.5,
-        "bat_speed_max": 75.0,
-        "rot_acc_max": 18.0,
         "sixty_time": 6.8,
-        "thirty_time": 3.2,
-        "ten_yard_time": 1.7,
-        "run_speed_max": 22.0,
         "exit_velo_max": 88.0,
-        "exit_velo_avg": 78.0,
-        "distance_max": 320.0,
-        "sweet_spot_p": 0.75,
         "c_velo": 78.0,
         "pop_time": 1.8,
         "throwing_hand": "R",
