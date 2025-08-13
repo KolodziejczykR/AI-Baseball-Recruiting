@@ -9,41 +9,16 @@ models_dir = os.path.join(os.path.dirname(__file__), '..', 'models')
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from pipeline.infielder_pipeline import InfielderPredictionPipeline
+from backend.utils.player_types import PlayerInfielder
 
 router = APIRouter()
 
 # Initialize the pipeline
 try:
-    pipeline = InfielderPredictionPipeline(models_dir=models_dir)
+    pipeline = InfielderPredictionPipeline()
 except Exception as e:
     print(f"Failed to initialize infielder pipeline: {e}")
     pipeline = None
-
-class InfielderInput(BaseModel):
-    """Input model for infielder statistics"""
-    
-    # Numerical features
-    height: Optional[float] = Field(None, description="Player height in inches")
-    weight: Optional[float] = Field(None, description="Player weight in pounds")
-    hand_speed_max: Optional[float] = Field(None, description="Maximum hand speed (mph)")
-    bat_speed_max: Optional[float] = Field(None, description="Maximum bat speed (mph)")
-    rot_acc_max: Optional[float] = Field(None, description="Maximum rotational acceleration")
-    sixty_time: Optional[float] = Field(None, description="60-yard dash time (seconds)")
-    thirty_time: Optional[float] = Field(None, description="30-yard dash time (seconds)")
-    ten_yard_time: Optional[float] = Field(None, description="10-yard dash time (seconds)")
-    run_speed_max: Optional[float] = Field(None, description="Maximum running speed (mph)")
-    exit_velo_max: Optional[float] = Field(None, description="Maximum exit velocity (mph)")
-    exit_velo_avg: Optional[float] = Field(None, description="Average exit velocity (mph)")
-    distance_max: Optional[float] = Field(None, description="Maximum hit distance (feet)")
-    sweet_spot_p: Optional[float] = Field(None, description="Sweet spot percentage (0-1)")
-    inf_velo: Optional[float] = Field(None, description="Infield velocity (mph)")
-    number_of_missing: Optional[float] = Field(None, description="Number of missing values in player data")
-    
-    # Categorical features
-    throwing_hand: Optional[str] = Field(None, description="Throwing hand (L/R)")
-    hitting_handedness: Optional[str] = Field(None, description="Hitting handedness (L/R/S)")
-    player_region: Optional[str] = Field(None, description="Player region")
-    primary_position: Optional[str] = Field(None, description="Primary position (SS, 2B, 3B, 1B)")
 
 class PredictionResponse(BaseModel):
     """Response model for infielder predictions"""
@@ -54,7 +29,7 @@ class PredictionResponse(BaseModel):
     error: Optional[str] = None
 
 @router.post("/predict", response_model=PredictionResponse)
-async def predict_infielder(input_data: InfielderInput) -> Dict[str, Any]:
+async def predict_infielder(input_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Predict infielder college level using the two-stage XGBoost pipeline.
     
@@ -67,11 +42,37 @@ async def predict_infielder(input_data: InfielderInput) -> Dict[str, Any]:
     if pipeline is None:
         raise HTTPException(status_code=500, detail="Prediction pipeline not available")
     
-    # Convert Pydantic model to dictionary
-    input_dict = input_data.model_dump(exclude_none=True)
+    # Use input_data directly if it's already a dictionary
+    if hasattr(input_data, 'model_dump'):
+        input_dict = input_data.model_dump(exclude_none=True)
+    else:
+        input_dict = input_data
+    
+    # Validate required fields
+    required_fields = ['height', 'weight', 'primary_position', 'hitting_handedness', 
+                      'throwing_hand', 'player_region', 'exit_velo_max', 'inf_velo', 'sixty_time']
+    
+    missing_fields = [field for field in required_fields if field not in input_dict or input_dict[field] is None]
+    if missing_fields:
+        raise HTTPException(status_code=400, detail=f"Missing required fields: {missing_fields}")
+    
+    try:
+        player = PlayerInfielder(
+            height=input_dict['height'],
+            weight=input_dict['weight'],
+            primary_position=input_dict['primary_position'],
+            hitting_handedness=input_dict['hitting_handedness'],
+            throwing_hand=input_dict['throwing_hand'],
+            region=input_dict['player_region'],
+            exit_velo_max=input_dict['exit_velo_max'],
+            inf_velo=input_dict['inf_velo'],
+            sixty_time=input_dict['sixty_time']
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid input data: {str(e)}")
     
     # Run prediction
-    result = pipeline.predict(input_dict)
+    result = pipeline.predict(player)
     
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
@@ -105,19 +106,9 @@ async def get_example_input() -> Dict[str, Any]:
         "example_input": {
             "height": 72.0,
             "weight": 180.0,
-            "hand_speed_max": 22.5,
-            "bat_speed_max": 75.0,
-            "rot_acc_max": 18.0,
             "sixty_time": 6.8,
-            "thirty_time": 3.2,
-            "ten_yard_time": 1.7,
-            "run_speed_max": 22.0,
             "exit_velo_max": 88.0,
-            "exit_velo_avg": 78.0,
-            "distance_max": 320.0,
-            "sweet_spot_p": 0.75,
             "inf_velo": 78.0,
-            "player_state": "CA",
             "throwing_hand": "R",
             "hitting_handedness": "R",
             "player_region": "West",

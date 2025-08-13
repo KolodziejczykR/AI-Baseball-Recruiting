@@ -9,6 +9,7 @@ models_dir = os.path.join(os.path.dirname(__file__), '..', 'models')
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from pipeline.catcher_pipeline import CatcherPredictionPipeline
+from backend.utils.player_types import PlayerCatcher
 
 router = APIRouter()
 
@@ -70,6 +71,9 @@ async def predict_catcher(input_data: CatcherInput) -> Dict[str, Any]:
     
     # Convert Pydantic model to dictionary
     input_dict = input_data.model_dump(exclude_none=True)
+    
+    # Note: Catcher pipeline still uses dictionary input (unlike infielder/outfielder)
+    # This should be updated to use PlayerCatcher objects in the future for consistency
     
     # Run prediction
     result = pipeline.predict(input_dict)
