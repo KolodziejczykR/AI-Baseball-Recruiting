@@ -22,10 +22,16 @@ except Exception as e:
 
 class PredictionResponse(BaseModel):
     """Response model for infielder predictions"""
-    prediction: str
+    final_prediction: str
+    final_category: int
+    d1_probability: float
+    p4_probability: Optional[float]
     probabilities: Dict[str, float]
-    confidence: float
-    stage: str
+    confidence: str
+    model_chain: str
+    d1_details: Optional[Dict[str, Any]] = None
+    p4_details: Optional[Dict[str, Any]] = None
+    player_info: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
 
 @router.post("/predict", response_model=PredictionResponse)

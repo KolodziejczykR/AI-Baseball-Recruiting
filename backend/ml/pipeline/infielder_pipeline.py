@@ -124,6 +124,40 @@ class InfielderPredictionPipeline:
                 'confidence': None
             }
     
+    def get_required_features(self) -> list:
+        """
+        Get list of required features for prediction
+        """
+        return [
+            'height', 'weight', 'sixty_time', 'exit_velo_max', 
+            'inf_velo', 'primary_position', 'player_region', 
+            'throwing_hand', 'hitting_handedness'
+        ]
+    
+    def get_feature_info(self) -> dict:
+        """
+        Get detailed information about features
+        """
+        return {
+            "numerical_features": [
+                'height', 'weight', 'sixty_time', 'exit_velo_max', 'inf_velo'
+            ],
+            "categorical_features": [
+                'primary_position', 'player_region', 'throwing_hand', 'hitting_handedness'
+            ],
+            "descriptions": {
+                'height': 'Player height in inches',
+                'weight': 'Player weight in pounds',
+                'sixty_time': '60-yard dash time in seconds',
+                'exit_velo_max': 'Maximum exit velocity in mph',
+                'inf_velo': 'Infield velocity in mph',
+                'primary_position': 'Primary playing position (SS, 2B, 3B, 1B)',
+                'player_region': 'Geographic region (Midwest, West, South, Northeast)',
+                'throwing_hand': 'Throwing hand (R, L)',
+                'hitting_handedness': 'Hitting handedness (R, L, S)'
+            }
+        }
+
     def get_model_info(self) -> dict:
         """
         Get information about the loaded models
