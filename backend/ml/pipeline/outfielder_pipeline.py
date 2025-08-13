@@ -77,8 +77,8 @@ class OutfielderPredictionPipeline:
             
             # Final probabilities (conditional on D1 prediction)
             non_d1_prob = 1 - d1_prob
-            non_p4_d1_prob = 1 - p4_conditional_prob
-            p4_d1_prob = p4_conditional_prob
+            non_p4_d1_prob = d1_prob * (1 - p4_conditional_prob)
+            p4_d1_prob = d1_prob * p4_conditional_prob
             
             # Determine final prediction
             if p4_result['p4_prediction'] == 1:

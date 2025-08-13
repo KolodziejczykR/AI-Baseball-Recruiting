@@ -184,15 +184,15 @@ class InfielderPredictionPipeline:
 if __name__ == "__main__":
     # Create example infielder
     example_player = PlayerInfielder(
-        height=72,
-        weight=200,
+        height=75,
+        weight=210,
         primary_position='SS',
         hitting_handedness='R',
         throwing_hand='R', 
-        region='South',
-        exit_velo_max=85.0,
-        inf_velo=78.0,
-        sixty_time=7.2
+        region='West',
+        exit_velo_max=105.0,
+        inf_velo=93.0,
+        sixty_time=6.5
     )
     
     # Initialize pipeline and make prediction
