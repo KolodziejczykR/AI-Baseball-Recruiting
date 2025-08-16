@@ -1,6 +1,8 @@
 import os
 import sys
 import warnings
+import logging
+import time
 warnings.filterwarnings('ignore')
 
 # Add project root to Python path to enable backend imports
@@ -20,7 +22,14 @@ class OutfielderPredictionPipeline:
         """
         Initialize the outfielder prediction pipeline using the latest production models.
         """
-        pass
+        self.logger = logging.getLogger(__name__)
+        self.logger.info("Initializing OutfielderPredictionPipeline")
+        
+        # Performance tracking
+        self.prediction_count = 0
+        self.total_prediction_time = 0.0
+        
+        self.logger.info("OutfielderPredictionPipeline initialized successfully")
 
     def predict(self, player: PlayerOutfielder) -> dict:
         """
@@ -39,18 +48,42 @@ class OutfielderPredictionPipeline:
             - p4_probability: Raw P4 probability (0.0-1.0) or None if Non-D1
             - final_prediction: 'Non-D1', 'Non-P4 D1', or 'Power 4 D1'
         """
+        start_time = time.time()
+        self.prediction_count += 1
+        
         if not isinstance(player, PlayerOutfielder):
+            self.logger.error(f"Invalid input type: {type(player)}. Expected PlayerOutfielder")
             raise TypeError("Input must be a PlayerOutfielder object")
+        
+        self.logger.info(f"Starting outfielder prediction #{self.prediction_count} for position: {player.primary_position}")
+        self.logger.debug(f"Player stats: height={player.height}, weight={player.weight}, "
+                         f"exit_velo_max={player.exit_velo_max}, of_velo={player.of_velo}")
         
         try:
             # Convert player to dictionary format expected by models
             player_data = player.to_dict()
+            self.logger.debug(f"Player data converted to dict with {len(player_data)} features")
             
             # Stage 1: Predict D1 vs Non-D1
+            self.logger.info("Running Stage 1: D1 vs Non-D1 prediction")
+            stage1_start = time.time()
             d1_result = d1_pipeline.predict_outfielder_d1_probability(player_data, MODEL_DIR_D1)
+            stage1_time = time.time() - stage1_start
+            
+            self.logger.info(f"Stage 1 completed in {stage1_time:.3f}s - "
+                           f"D1 probability: {d1_result['d1_probability']:.3f}, "
+                           f"Prediction: {'D1' if d1_result['d1_prediction'] == 1 else 'Non-D1'}")
             
             # If predicted as Non-D1, return early
             if d1_result['d1_prediction'] == 0:
+                total_time = time.time() - start_time
+                self.total_prediction_time += total_time
+                
+                self.logger.info(f"Prediction completed: Non-D1 (D1 prob: {d1_result['d1_probability']:.3f}) "
+                               f"in {total_time:.3f}s")
+                self.logger.info(f"Pipeline stats: {self.prediction_count} predictions, "
+                               f"avg time: {self.total_prediction_time/self.prediction_count:.3f}s")
+                
                 return {
                     'final_prediction': 'Non-D1',
                     'final_category': 0,  # Non-D1
@@ -69,7 +102,14 @@ class OutfielderPredictionPipeline:
                 }
             
             # Stage 2: For D1-predicted players, predict P4 vs Non-P4 D1
-            p4_result = p4_pipeline.predict_outfielder_p4_probability(player_data, MODEL_DIR_P4)
+            self.logger.info("Running Stage 2: P4 vs Non-P4 D1 prediction")
+            stage2_start = time.time()
+            p4_result = p4_pipeline.predict_outfielder_p4_probability(player_data, MODEL_DIR_P4, d1_probability=d1_result['d1_probability'])
+            stage2_time = time.time() - stage2_start
+            
+            self.logger.info(f"Stage 2 completed in {stage2_time:.3f}s - "
+                           f"P4 probability: {p4_result['p4_probability']:.3f}, "
+                           f"Prediction: {'P4' if p4_result['p4_prediction'] == 1 else 'Non-P4'}")
             
             # Calculate final probabilities
             d1_prob = d1_result['d1_probability']
@@ -77,8 +117,8 @@ class OutfielderPredictionPipeline:
             
             # Final probabilities (conditional on D1 prediction)
             non_d1_prob = 1 - d1_prob
-            non_p4_d1_prob = 1 - p4_conditional_prob
-            p4_d1_prob = p4_conditional_prob
+            non_p4_d1_prob = d1_prob * (1 - p4_conditional_prob)
+            p4_d1_prob = d1_prob * p4_conditional_prob
             
             # Determine final prediction
             if p4_result['p4_prediction'] == 1:
@@ -90,6 +130,15 @@ class OutfielderPredictionPipeline:
             
             # Overall confidence is minimum of both stages
             overall_confidence = min(d1_result['confidence_level'], p4_result['confidence'])
+            
+            total_time = time.time() - start_time
+            self.total_prediction_time += total_time
+            
+            self.logger.info(f"Prediction completed: {final_prediction} "
+                           f"(D1: {d1_prob:.3f}, P4: {p4_conditional_prob:.3f}) "
+                           f"in {total_time:.3f}s")
+            self.logger.info(f"Pipeline stats: {self.prediction_count} predictions, "
+                           f"avg time: {self.total_prediction_time/self.prediction_count:.3f}s")
             
             return {
                 'final_prediction': final_prediction,
@@ -115,6 +164,9 @@ class OutfielderPredictionPipeline:
             }
             
         except Exception as e:
+            total_time = time.time() - start_time
+            self.logger.error(f"Prediction failed after {total_time:.3f}s: {str(e)}", exc_info=True)
+            
             return {
                 'error': f"Prediction failed: {str(e)}",
                 'final_prediction': None,
@@ -123,6 +175,40 @@ class OutfielderPredictionPipeline:
                 'confidence': None
             }
     
+    def get_required_features(self) -> list:
+        """
+        Get list of required features for prediction
+        """
+        return [
+            'height', 'weight', 'sixty_time', 'exit_velo_max', 
+            'of_velo', 'primary_position', 'player_region', 
+            'throwing_hand', 'hitting_handedness'
+        ]
+    
+    def get_feature_info(self) -> dict:
+        """
+        Get detailed information about features
+        """
+        return {
+            "numerical_features": [
+                'height', 'weight', 'sixty_time', 'exit_velo_max', 'of_velo'
+            ],
+            "categorical_features": [
+                'primary_position', 'player_region', 'throwing_hand', 'hitting_handedness'
+            ],
+            "descriptions": {
+                'height': 'Player height in inches',
+                'weight': 'Player weight in pounds',
+                'sixty_time': '60-yard dash time in seconds',
+                'exit_velo_max': 'Maximum exit velocity in mph',
+                'of_velo': 'Outfield velocity in mph',
+                'primary_position': 'Primary playing position (CF, LF, RF, OF)',
+                'player_region': 'Geographic region (West, South, Northeast)',
+                'throwing_hand': 'Throwing hand (R, L)',
+                'hitting_handedness': 'Hitting handedness (R, L, S)'
+            }
+        }
+
     def get_model_info(self) -> dict:
         """
         Get information about the loaded models
@@ -149,15 +235,15 @@ class OutfielderPredictionPipeline:
 if __name__ == "__main__":
     # Create example outfielder
     example_player = PlayerOutfielder(
-        height=72,
+        height=74,
         weight=200,
         primary_position='OF',
         hitting_handedness='S',
         throwing_hand='R', 
         region='South',
-        exit_velo_max=85.0,
-        of_velo=78.0,
-        sixty_time=7.2
+        exit_velo_max=105.0,
+        of_velo=98.0,
+        sixty_time=6.6
     )
     
     # Initialize pipeline and make prediction

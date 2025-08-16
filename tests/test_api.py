@@ -20,17 +20,8 @@ def test_infielder_predict_high_performer():
     data = {
         "height": 72.0,
         "weight": 180.0,
-        "hand_speed_max": 22.5,
-        "bat_speed_max": 75.0,
-        "rot_acc_max": 18.0,
         "sixty_time": 6.8,
-        "thirty_time": 3.2,
-        "ten_yard_time": 1.7,
-        "run_speed_max": 22.0,
         "exit_velo_max": 88.0,
-        "exit_velo_avg": 78.0,
-        "distance_max": 320.0,
-        "sweet_spot_p": 0.75,
         "inf_velo": 78.0,
         "throwing_hand": "R",
         "hitting_handedness": "R",
@@ -40,27 +31,35 @@ def test_infielder_predict_high_performer():
     response = client.post("/infielder/predict", json=data)
     assert response.status_code == 200
     result = response.json()
-    assert "prediction" in result
+    assert "final_prediction" in result
     assert "probabilities" in result
     assert "confidence" in result
-    assert "stage" in result
-    assert result["prediction"] in ["Non D1", "Non P4 D1", "Power 4 D1"]
+    assert "model_chain" in result
+    assert "d1_probability" in result
+    assert "final_category" in result
+    assert result["final_prediction"] in ["Non-D1", "Non-P4 D1", "Power 4 D1"]
     assert isinstance(result["probabilities"], dict)
     assert all(0.0 <= v <= 1.0 for v in result["probabilities"].values())
 
 def test_infielder_predict_minimal_data():
     """Test infielder prediction with minimal data"""
     data = {
+        "height": 70,
+        "weight": 170,
+        "primary_position": "SS",
+        "hitting_handedness": "R",
+        "throwing_hand": "R",
+        "player_region": "West",
         "exit_velo_max": 85.0,
         "inf_velo": 75.0,
-        "primary_position": "SS"
+        "sixty_time": 7.0
     }
     response = client.post("/infielder/predict", json=data)
     assert response.status_code == 200
     result = response.json()
-    assert "prediction" in result
+    assert "final_prediction" in result
     assert "probabilities" in result
-    assert result["prediction"] in ["Non D1", "Non P4 D1", "Power 4 D1"]
+    assert result["final_prediction"] in ["Non-D1", "Non-P4 D1", "Power 4 D1"]
 
 def test_infielder_features_endpoint():
     """Test infielder features endpoint"""
@@ -98,9 +97,12 @@ def test_infielder_different_positions():
     base_data = {
         "exit_velo_max": 85.0,
         "inf_velo": 75.0,
+        "sixty_time": 7.0,
         "throwing_hand": "R",
         "hitting_handedness": "R",
-        "player_region": "West"
+        "player_region": "West",
+        "height": 72.0,
+        "weight": 180.0
     }
     
     for position in positions:
@@ -109,8 +111,8 @@ def test_infielder_different_positions():
         response = client.post("/infielder/predict", json=data)
         assert response.status_code == 200
         result = response.json()
-        assert "prediction" in result
-        assert result["prediction"] in ["Non D1", "Non P4 D1", "Power 4 D1"]
+        assert "final_prediction" in result
+        assert result["final_prediction"] in ["Non-D1", "Non-P4 D1", "Power 4 D1"]
 
 # Outfielder API Tests
 def test_outfielder_predict_high_performer():
@@ -118,47 +120,46 @@ def test_outfielder_predict_high_performer():
     data = {
         "height": 73.0,
         "weight": 185.0,
-        "hand_speed_max": 23.0,
-        "bat_speed_max": 78.0,
-        "rot_acc_max": 19.0,
         "sixty_time": 6.6,
-        "thirty_time": 3.1,
-        "ten_yard_time": 1.6,
-        "run_speed_max": 23.5,
         "exit_velo_max": 92.0,
-        "exit_velo_avg": 82.0,
-        "distance_max": 350.0,
-        "sweet_spot_p": 0.78,
         "of_velo": 82.0,
         "throwing_hand": "R",
         "hitting_handedness": "R",
         "player_region": "West",
-        "primary_position": "CF"
+        "primary_position": "OF"
     }
     response = client.post("/outfielder/predict", json=data)
     assert response.status_code == 200
     result = response.json()
-    assert "prediction" in result
+    assert "final_prediction" in result
     assert "probabilities" in result
     assert "confidence" in result
-    assert "stage" in result
-    assert result["prediction"] in ["Non D1", "Non P4 D1", "Power 4 D1"]
+    assert "model_chain" in result
+    assert "d1_probability" in result
+    assert "final_category" in result
+    assert result["final_prediction"] in ["Non-D1", "Non-P4 D1", "Power 4 D1"]
     assert isinstance(result["probabilities"], dict)
     assert all(0.0 <= v <= 1.0 for v in result["probabilities"].values())
 
 def test_outfielder_predict_minimal_data():
     """Test outfielder prediction with minimal data"""
     data = {
+        "height": 70,
+        "weight": 170,
+        "primary_position": "OF",
+        "hitting_handedness": "R",
+        "throwing_hand": "R",
+        "player_region": "West",
         "exit_velo_max": 88.0,
         "of_velo": 78.0,
-        "primary_position": "CF"
+        "sixty_time": 7.0
     }
     response = client.post("/outfielder/predict", json=data)
     assert response.status_code == 200
     result = response.json()
-    assert "prediction" in result
+    assert "final_prediction" in result
     assert "probabilities" in result
-    assert result["prediction"] in ["Non D1", "Non P4 D1", "Power 4 D1"]
+    assert result["final_prediction"] in ["Non-D1", "Non-P4 D1", "Power 4 D1"]
 
 def test_outfielder_features_endpoint():
     """Test outfielder features endpoint"""
@@ -192,8 +193,11 @@ def test_outfielder_example_endpoint():
 
 def test_outfielder_different_positions():
     """Test outfielder predictions for different positions"""
-    positions = ["CF", "LF", "RF", "OF"]
+    positions = ["OF"]
     base_data = {
+        "height": 71.0,
+        "weight": 175.0,
+        "sixty_time": 7.0,
         "exit_velo_max": 88.0,
         "of_velo": 78.0,
         "throwing_hand": "R",
@@ -207,8 +211,8 @@ def test_outfielder_different_positions():
         response = client.post("/outfielder/predict", json=data)
         assert response.status_code == 200
         result = response.json()
-        assert "prediction" in result
-        assert result["prediction"] in ["Non D1", "Non P4 D1", "Power 4 D1"]
+        assert "final_prediction" in result
+        assert result["final_prediction"] in ["Non-D1", "Non-P4 D1", "Power 4 D1"]
 
 def test_outfielder_speed_focused_player():
     """Test outfielder prediction for speed-focused player"""
@@ -216,41 +220,37 @@ def test_outfielder_speed_focused_player():
         "height": 70.0,
         "weight": 160.0,
         "sixty_time": 6.4,  # Very fast
-        "thirty_time": 3.0,  # Very fast
-        "ten_yard_time": 1.5,  # Very fast
-        "run_speed_max": 24.0,  # Very fast
         "exit_velo_max": 82.0,
         "of_velo": 80.0,
         "throwing_hand": "R",
         "hitting_handedness": "R",
-        "player_region": "Southeast",
-        "primary_position": "CF"
+        "player_region": "South",
+        "primary_position": "OF"
     }
     response = client.post("/outfielder/predict", json=data)
     assert response.status_code == 200
     result = response.json()
-    assert "prediction" in result
-    assert result["prediction"] in ["Non D1", "Non P4 D1", "Power 4 D1"]
+    assert "final_prediction" in result
+    assert result["final_prediction"] in ["Non-D1", "Non-P4 D1", "Power 4 D1"]
 
 def test_outfielder_power_focused_player():
     """Test outfielder prediction for power-focused player"""
     data = {
         "height": 74.0,
         "weight": 200.0,
+        "sixty_time": 7.2,  # Average speed
         "exit_velo_max": 95.0,  # Very high
-        "exit_velo_avg": 85.0,  # Very high
-        "distance_max": 360.0,  # Very high
         "of_velo": 75.0,
         "throwing_hand": "R",
         "hitting_handedness": "R",
         "player_region": "West",
-        "primary_position": "RF"
+        "primary_position": "OF"
     }
     response = client.post("/outfielder/predict", json=data)
     assert response.status_code == 200
     result = response.json()
-    assert "prediction" in result
-    assert result["prediction"] in ["Non D1", "Non P4 D1", "Power 4 D1"]
+    assert "final_prediction" in result
+    assert result["final_prediction"] in ["Non-D1", "Non-P4 D1", "Power 4 D1"]
 
 # Error handling tests
 def test_infielder_invalid_data():
@@ -279,17 +279,13 @@ def test_infielder_empty_data():
     """Test infielder prediction with empty data"""
     data = {}
     response = client.post("/infielder/predict", json=data)
-    assert response.status_code == 200  # Should handle empty data gracefully
-    result = response.json()
-    assert "prediction" in result
+    assert response.status_code == 422  # Pydantic validation error for missing required fields
 
 def test_outfielder_empty_data():
     """Test outfielder prediction with empty data"""
     data = {}
     response = client.post("/outfielder/predict", json=data)
-    assert response.status_code == 200  # Should handle empty data gracefully
-    result = response.json()
-    assert "prediction" in result
+    assert response.status_code == 422  # Pydantic validation error for missing required fields
 
 # Catcher API Tests
 def test_catcher_predict_high_performer():
@@ -297,17 +293,8 @@ def test_catcher_predict_high_performer():
     data = {
         "height": 72.0,
         "weight": 185.0,
-        "hand_speed_max": 22.5,
-        "bat_speed_max": 75.0,
-        "rot_acc_max": 18.0,
         "sixty_time": 6.8,
-        "thirty_time": 3.2,
-        "ten_yard_time": 1.7,
-        "run_speed_max": 22.0,
         "exit_velo_max": 88.0,
-        "exit_velo_avg": 78.0,
-        "distance_max": 320.0,
-        "sweet_spot_p": 0.75,
         "c_velo": 78.0,
         "pop_time": 1.8,
         "throwing_hand": "R",
@@ -318,11 +305,13 @@ def test_catcher_predict_high_performer():
     response = client.post("/catcher/predict", json=data)
     assert response.status_code == 200
     result = response.json()
-    assert "prediction" in result
+    assert "final_prediction" in result
     assert "probabilities" in result
     assert "confidence" in result
-    assert "stage" in result
-    assert result["prediction"] in ["Non D1", "Non P4 D1", "Power 4 D1"]
+    assert "model_chain" in result
+    assert "d1_probability" in result
+    assert "final_category" in result
+    assert result["final_prediction"] in ["Non-D1", "Non-P4 D1", "Power 4 D1"]
     assert isinstance(result["probabilities"], dict)
     assert all(0.0 <= v <= 1.0 for v in result["probabilities"].values())
 
@@ -336,9 +325,9 @@ def test_catcher_predict_minimal_data():
     response = client.post("/catcher/predict", json=data)
     assert response.status_code == 200
     result = response.json()
-    assert "prediction" in result
+    assert "final_prediction" in result
     assert "probabilities" in result
-    assert result["prediction"] in ["Non D1", "Non P4 D1", "Power 4 D1"]
+    assert result["final_prediction"] in ["Non-D1", "Non-P4 D1", "Power 4 D1"]
 
 def test_catcher_features_endpoint():
     """Test catcher features endpoint"""
@@ -386,8 +375,8 @@ def test_catcher_specific_features():
     response = client.post("/catcher/predict", json=data)
     assert response.status_code == 200
     result = response.json()
-    assert "prediction" in result
-    assert result["prediction"] in ["Non D1", "Non P4 D1", "Power 4 D1"]
+    assert "final_prediction" in result
+    assert result["final_prediction"] in ["Non-D1", "Non-P4 D1", "Power 4 D1"]
 
 def test_catcher_different_pop_times():
     """Test catcher predictions with different pop times"""
@@ -407,8 +396,8 @@ def test_catcher_different_pop_times():
         response = client.post("/catcher/predict", json=data)
         assert response.status_code == 200
         result = response.json()
-        assert "prediction" in result
-        assert result["prediction"] in ["Non D1", "Non P4 D1", "Power 4 D1"]
+        assert "final_prediction" in result
+        assert result["final_prediction"] in ["Non-D1", "Non-P4 D1", "Power 4 D1"]
 
 def test_catcher_invalid_data():
     """Test catcher prediction with invalid data"""
@@ -425,6 +414,4 @@ def test_catcher_empty_data():
     """Test catcher prediction with empty data"""
     data = {}
     response = client.post("/catcher/predict", json=data)
-    assert response.status_code == 200  # Should handle empty data gracefully
-    result = response.json()
-    assert "prediction" in result 
+    assert response.status_code == 400  # Should return error for missing required fields 

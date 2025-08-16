@@ -1,0 +1,12 @@
+# elite positional player constants
+ELITE_EXIT_VELO_MAX = 97.0
+ELITE_INF_VELO = 90.0
+ELITE_OF_VELO = 95.0
+ELITE_C_VELO = 82.0
+ELITE_POP_TIME = 1.9
+ELITE_SIXTY_TIME_INF = 6.8
+ELITE_SIXTY_TIME_OF = 6.7
+ELITE_SIXTY_TIME_C = 7.0
+ELITE_HEIGHT_MIN = 75.0
+
+# elite pitcher constants
