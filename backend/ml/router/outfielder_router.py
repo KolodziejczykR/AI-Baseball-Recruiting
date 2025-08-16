@@ -9,12 +9,13 @@ models_dir = os.path.join(os.path.dirname(__file__), '..', 'models')
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from pipeline.outfielder_pipeline import OutfielderPredictionPipeline
+from backend.utils.player_types import PlayerOutfielder
 
 router = APIRouter()
 
 # Initialize the pipeline
 try:
-    pipeline = OutfielderPredictionPipeline(models_dir=models_dir)
+    pipeline = OutfielderPredictionPipeline()
 except Exception as e:
     print(f"Failed to initialize outfielder pipeline: {e}")
     pipeline = None
@@ -54,7 +55,7 @@ class PredictionResponse(BaseModel):
     error: Optional[str] = None
 
 @router.post("/predict", response_model=PredictionResponse)
-async def predict_outfielder(input_data: OutfielderInput) -> Dict[str, Any]:
+async def predict_outfielder(input_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Predict outfielder college level using the two-stage XGBoost pipeline.
     
@@ -67,11 +68,38 @@ async def predict_outfielder(input_data: OutfielderInput) -> Dict[str, Any]:
     if pipeline is None:
         raise HTTPException(status_code=500, detail="Prediction pipeline not available")
     
-    # Convert Pydantic model to dictionary
-    input_dict = input_data.model_dump(exclude_none=True)
+    # Use input_data directly if it's already a dictionary
+    if hasattr(input_data, 'model_dump'):
+        input_dict = input_data.model_dump(exclude_none=True)
+    else:
+        input_dict = input_data
+    
+    # Validate required fields
+    required_fields = ['height', 'weight', 'primary_position', 'hitting_handedness', 
+                      'throwing_hand', 'player_region', 'exit_velo_max', 'of_velo', 'sixty_time']
+    
+    missing_fields = [field for field in required_fields if field not in input_dict or input_dict[field] is None]
+    if missing_fields:
+        raise HTTPException(status_code=400, detail=f"Missing required fields: {missing_fields}")
+    
+    # Create PlayerOutfielder object
+    try:
+        player = PlayerOutfielder(
+            height=input_dict['height'],
+            weight=input_dict['weight'],
+            primary_position=input_dict['primary_position'],
+            hitting_handedness=input_dict['hitting_handedness'],
+            throwing_hand=input_dict['throwing_hand'],
+            region=input_dict['player_region'],
+            exit_velo_max=input_dict['exit_velo_max'],
+            of_velo=input_dict['of_velo'],
+            sixty_time=input_dict['sixty_time']
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid input data: {str(e)}")
     
     # Run prediction
-    result = pipeline.predict(input_dict)
+    result = pipeline.predict(player)
     
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
@@ -105,19 +133,9 @@ async def get_example_input() -> Dict[str, Any]:
         "example_input": {
             "height": 72.0,
             "weight": 180.0,
-            "hand_speed_max": 22.5,
-            "bat_speed_max": 75.0,
-            "rot_acc_max": 18.0,
             "sixty_time": 6.8,
-            "thirty_time": 3.2,
-            "ten_yard_time": 1.7,
-            "run_speed_max": 22.0,
             "exit_velo_max": 88.0,
-            "exit_velo_avg": 78.0,
-            "distance_max": 320.0,
-            "sweet_spot_p": 0.75,
             "of_velo": 78.0,
-            "player_state": "CA",
             "throwing_hand": "R",
             "hitting_handedness": "R",
             "player_region": "West",
