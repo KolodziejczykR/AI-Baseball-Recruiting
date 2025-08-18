@@ -13,6 +13,8 @@ import sys
 import os
 from sklearn.preprocessing import StandardScaler
 
+from backend.utils.player_types import PlayerOutfielder
+
 # Add project root to path for imports
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../../..'))
 if project_root not in sys.path:
@@ -22,22 +24,12 @@ from backend.utils.elite_weighting_constants import (
     ELITE_EXIT_VELO_MAX, ELITE_OF_VELO, ELITE_SIXTY_TIME_OF, ELITE_HEIGHT_MIN
 )
 
-def predict_outfielder_p4_probability(player_data, models_dir='/Users/ryankolodziejczyk/Documents/AI Baseball Recruitment/code/backend/ml/models/models_of/models_p4_or_not_of/v4_20250807_105039', d1_probability=None):
+def predict_outfielder_p4_probability(player_data: dict, models_dir: str, d1_probability: float) -> dict:
     """
     Predict P4 college probability for outfielder
     
     Args:
         player_data (dict): Player statistics
-        {
-            'height': float,          # inches
-            'weight': float,          # pounds  
-            'sixty_time': float,      # seconds
-            'exit_velo_max': float,   # mph
-            'of_velo': float,         # mph (outfield velocity)
-            'player_region': str,     # Geographic region
-            'throwing_hand': str,     # 'Left' or 'Right'
-            'hitting_handedness': str # 'Left', 'Right', or 'Switch'
-        }
         models_dir (str): Path to model files
     
     Returns:
@@ -86,10 +78,7 @@ def predict_outfielder_p4_probability(player_data, models_dir='/Users/ryankolodz
     df = pd.get_dummies(df, columns=['player_region', 'throwing_hand', 'hitting_handedness'], drop_first=False)
     
     # Use actual D1 probability from D1 stage, or fallback to placeholder
-    if d1_probability is not None:
-        df['d1_probability'] = d1_probability
-    else:
-        df['d1_probability'] = 0.7  # Fallback placeholder
+    df['d1_probability'] = d1_probability
     
     # D1-based features
     df['d1_prob_size'] = df['d1_probability'] * df['height_weight']

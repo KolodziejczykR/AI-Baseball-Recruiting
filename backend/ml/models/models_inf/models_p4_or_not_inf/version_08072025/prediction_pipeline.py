@@ -11,6 +11,8 @@ import joblib
 import os
 import sys
 
+from backend.utils.player_types import PlayerInfielder
+
 # Add project root to path for imports
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../../..'))
 if project_root not in sys.path:
@@ -20,7 +22,7 @@ from backend.utils.elite_weighting_constants import (
     ELITE_EXIT_VELO_MAX, ELITE_INF_VELO, ELITE_SIXTY_TIME_INF, ELITE_HEIGHT_MIN
 )
 
-def predict_infielder_p4_probability(player_data, models_dir):
+def predict_infielder_p4_probability(player_data: dict, models_dir: str, d1_probability: float) -> dict:
     """
     Predict P4 college probability for infielder
     
@@ -112,8 +114,7 @@ def predict_infielder_p4_probability(player_data, models_dir):
     df['speed_scaled'] = (1 - (df['sixty_time'] - df['sixty_time'].min()) / (df['sixty_time'].max() - df['sixty_time'].min())) * 100
     df['arm_scaled'] = (df['inf_velo'] - df['inf_velo'].min()) / (df['inf_velo'].max() - df['inf_velo'].min()) * 100
     
-    # Add D1 ensemble probability (placeholder - would come from D1 stage in practice)
-    df['d1_ensemble_prob'] = 0.7  # Placeholder value
+    df['d1_ensemble_prob'] = d1_probability
     df['d1_confidence_high'] = 1
     df['d1_confidence_medium'] = 0
     df['d1_prob_squared'] = df['d1_ensemble_prob'] ** 2

@@ -4,6 +4,8 @@ import joblib
 import sys
 import os
 
+from backend.utils.player_types import PlayerInfielder
+
 # Add project root to path for imports
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../../..'))
 if project_root not in sys.path:
@@ -13,7 +15,7 @@ from backend.utils.elite_weighting_constants import (
     ELITE_EXIT_VELO_MAX, ELITE_INF_VELO, ELITE_SIXTY_TIME_INF, ELITE_HEIGHT_MIN
 )
 
-def predict_infielder_d1_probability(player_data, models_dir):
+def predict_infielder_d1_probability(player_data: PlayerInfielder, models_dir: str) -> dict:
     """
     Predict D1 probability for an infielder using ensemble model.
     

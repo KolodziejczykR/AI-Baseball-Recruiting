@@ -105,7 +105,7 @@ class InfielderPredictionPipeline:
             # Stage 2: For D1-predicted players, predict P4 vs Non-P4 D1
             self.logger.info("Running Stage 2: P4 vs Non-P4 D1 prediction")
             stage2_start = time.time()
-            p4_result = p4_pipeline.predict_infielder_p4_probability(player_data, MODEL_DIR_P4)
+            p4_result = p4_pipeline.predict_infielder_p4_probability(player_data, MODEL_DIR_P4, float(d1_result['d1_probability']))
             stage2_time = time.time() - stage2_start
             
             self.logger.info(f"Stage 2 completed in {stage2_time:.3f}s - "
