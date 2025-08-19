@@ -11,16 +11,12 @@ import json
 import sys
 import os
 
-from backend.utils.prediction_types import D1PredictionResult
-
 # Add project root to path for imports
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../../..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from backend.utils.elite_weighting_constants import (
-    ELITE_EXIT_VELO_MAX, ELITE_OF_VELO, ELITE_SIXTY_TIME_OF, ELITE_HEIGHT_MIN
-)
+from backend.utils.prediction_types import D1PredictionResult
 
 def predict_outfielder_d1_probability(player_data: dict, models_dir: str) -> D1PredictionResult:
     """
@@ -51,10 +47,16 @@ def predict_outfielder_d1_probability(player_data: dict, models_dir: str) -> D1P
     # Feature engineering (same as training)
     df = pd.DataFrame([player_data])
     
-    # Categorical encoding
-    df = pd.get_dummies(df, columns=['player_region', 'throwing_hand', 'hitting_handedness'], 
-                       prefix_sep='_', drop_first=False)
+    df['throwing_hand_R'] = (df['throwing_hand'] == 'R').astype(int)
+    df['hitting_handedness_R'] = (df['hitting_handedness'] == 'R').astype(int)
+    df['hitting_handedness_S'] = (df['hitting_handedness'] == 'S').astype(int)
     
+    for region in ['Northeast', 'South', 'West']:
+        df[f'player_region_{region}'] = (df['player_region'] == region).astype(int)
+    
+    # Drop original categorical columns
+    df = df.drop(['throwing_hand', 'hitting_handedness', 'player_region'], axis=1)
+
     # Basic engineered features
     df['power_speed'] = df['exit_velo_max'] / df['sixty_time']
     df['of_velo_sixty_ratio'] = df['of_velo'] / df['sixty_time']
@@ -75,11 +77,11 @@ def predict_outfielder_d1_probability(player_data: dict, models_dir: str) -> D1P
     df['athletic_index'] = (df['power_speed'] * df['height'] * df['weight']) / df['sixty_time']
     df['power_speed_index'] = df['exit_velo_max'] * (1 / df['sixty_time'])
     
-    # Elite binary features (using fixed thresholds)
-    df['elite_exit_velo'] = (df['exit_velo_max'] >= ELITE_EXIT_VELO_MAX).astype(int)
-    df['elite_of_velo'] = (df['of_velo'] >= ELITE_OF_VELO).astype(int)
-    df['elite_speed'] = (df['sixty_time'] <= ELITE_SIXTY_TIME_OF).astype(int)
-    df['elite_size'] = (df['height'] >= ELITE_HEIGHT_MIN).astype(int)
+    # Elite binary features (values taken from trained model cutoffs via large data)
+    df['elite_exit_velo'] = (df['exit_velo_max'] >= 96).astype(int)
+    df['elite_of_velo'] = (df['of_velo'] >= 87).astype(int)
+    df['elite_speed'] = (df['sixty_time'] <= 6.82).astype(float)
+    df['elite_size'] = (df['height'] >= 72).astype(int)
     df['multi_tool_count'] = (df['elite_exit_velo'] + df['elite_of_velo'] + 
                              df['elite_speed'] + df['elite_size'])
     
@@ -177,18 +179,19 @@ def predict_outfielder_d1_probability(player_data: dict, models_dir: str) -> D1P
     # Combined confidence: ensemble agreement + boundary distance
     individual_probs = [xgb_prob, dnn_prob, lgb_prob, svm_prob]
     
-    # Agreement: Low std = high agreement = high confidence
-    agreement_score = max(0, 1 - np.std(individual_probs) * 4)  # Scale to 0-1
+    # Agreement: More lenient for diverse model types (tree vs neural vs SVM)
+    agreement_score = max(0, 1 - np.std(individual_probs) * 2.5)
     
     # Boundary distance: Far from 0.5 = high confidence  
-    boundary_confidence = 2 * abs(final_prob - 0.5)
+    boundary_confidence = 2 * abs(ensemble_prob - 0.5)
     
-    # Combined confidence (weighted average)
-    combined_confidence = 0.6 * agreement_score + 0.4 * boundary_confidence
+    # Combined confidence mean
+    combined_confidence = (agreement_score + boundary_confidence) / 2
     
-    if combined_confidence > 0.7:
+    # More realistic thresholds for diverse ensemble
+    if combined_confidence > 0.6:
         confidence = 'High'
-    elif combined_confidence > 0.4:
+    elif combined_confidence > 0.3:
         confidence = 'Medium'
     else:
         confidence = 'Low'
@@ -199,7 +202,6 @@ def predict_outfielder_d1_probability(player_data: dict, models_dir: str) -> D1P
         confidence=confidence,
         model_version=config.get('model_version', 'outfielder_d1_08072025')
     )
-
 
 if __name__ == "__main__":
     # Example usage
