@@ -247,6 +247,58 @@ for col in X_d1_elite.select_dtypes(include=[np.number]).columns:
     IQR = Q3 - Q1
     X_d1_elite[col] = X_d1_elite[col].clip(Q1 - 1.5*IQR, Q3 + 1.5*IQR)
 
+# ============================================================================
+# PRINT QUANTILES FOR PRODUCTION PIPELINE PERCENTILE CALCULATION
+# ============================================================================
+print("\n" + "="*80)
+print("QUANTILES FOR PRODUCTION PIPELINE PERCENTILE CALCULATION")
+print("="*80)
+
+# Print quantiles for exit_velo_max percentile calculation (higher is better)
+exit_velo_max_quantiles = [df['exit_velo_max'].quantile(i/100) for i in range(0, 101, 5)]
+print(f"\nexit_velo_max_quantiles = {exit_velo_max_quantiles}")
+
+# Print quantiles for of_velo percentile calculation (higher is better)
+of_velo_quantiles = [df['of_velo'].quantile(i/100) for i in range(0, 101, 5)]
+print(f"\nof_velo_quantiles = {of_velo_quantiles}")
+
+# Print quantiles for sixty_time percentile calculation (lower is better)
+sixty_time_quantiles = [df['sixty_time'].quantile(i/100) for i in range(0, 101, 5)]
+print(f"\nsixty_time_quantiles = {sixty_time_quantiles}")
+
+# Print quantiles for height percentile calculation (higher is better)
+height_quantiles = [df['height'].quantile(i/100) for i in range(0, 101, 5)]
+print(f"\nheight_quantiles = {height_quantiles}")
+
+# Print quantiles for weight percentile calculation (higher is better)
+weight_quantiles = [df['weight'].quantile(i/100) for i in range(0, 101, 5)]
+print(f"\nweight_quantiles = {weight_quantiles}")
+
+# Print quantiles for power_speed percentile calculation (higher is better)
+power_speed_quantiles = [df['power_speed'].quantile(i/100) for i in range(0, 101, 5)]
+print(f"\npower_speed_quantiles = {power_speed_quantiles}")
+
+# Print sample calculations for verification
+print(f"\n# Sample calculations for verification:")
+sample_idx = df.index[0]
+print(f"Sample player at index {sample_idx}:")
+print(f"  exit_velo_max: {df.loc[sample_idx, 'exit_velo_max']:.2f}")
+print(f"  of_velo: {df.loc[sample_idx, 'of_velo']:.2f}")
+print(f"  sixty_time: {df.loc[sample_idx, 'sixty_time']:.2f}")
+print(f"  height: {df.loc[sample_idx, 'height']:.2f}")
+print(f"  weight: {df.loc[sample_idx, 'weight']:.2f}")
+print(f"  power_speed: {df.loc[sample_idx, 'power_speed']:.2f}")
+print(f"  exit_velo_max_percentile: {df.loc[sample_idx, 'exit_velo_max_percentile']:.2f}")
+print(f"  of_velo_percentile: {df.loc[sample_idx, 'of_velo_percentile']:.2f}")
+print(f"  sixty_time_percentile: {df.loc[sample_idx, 'sixty_time_percentile']:.2f}")
+print(f"  height_percentile: {df.loc[sample_idx, 'height_percentile']:.2f}")
+print(f"  weight_percentile: {df.loc[sample_idx, 'weight_percentile']:.2f}")
+print(f"  power_speed_percentile: {df.loc[sample_idx, 'power_speed_percentile']:.2f}")
+
+print("="*80)
+print("END QUANTILES - COPY THE ABOVE VALUES TO PRODUCTION PIPELINE")
+print("="*80 + "\n")
+
 # Train/test split for D1 prediction
 X_d1_train, X_d1_test, y_d1_train, y_d1_test = train_test_split(
     X_d1_elite, y_d1_elite, test_size=0.2, stratify=y_d1_elite, random_state=42

@@ -22,11 +22,19 @@ class PlayerType:
         self.region = region
         self.primary_position = primary_position
 
-    def get_player_type(self):
+    def get_player_type(self) -> str:
         """
         Returns the type of player based on primary position.
         """
         return self.__class__.__name__
+
+    def get_player_info(self) -> dict:
+        return {
+            "height": self.height,
+            "weight": self.weight,
+            "primary_position": self.primary_position,
+            "region": self.region
+        }
 
 class PlayerCatcher(PlayerType):
     def __init__(
@@ -56,8 +64,8 @@ class PlayerCatcher(PlayerType):
         pop_time (float): Pop time of the player (seconds)
         exit_velo_max (float): Maximum exit velocity (mph)
         """
-        super().__init__(height, weight, primary_position, region)
-        self.inf_velo = c_velo
+        super().__init__(height, weight, region, primary_position)
+        self.c_velo = c_velo
         self.pop_time = pop_time
         self.exit_velo_max = exit_velo_max
         self.sixty_time = sixty_time
@@ -67,7 +75,7 @@ class PlayerCatcher(PlayerType):
     def get_player_type(self) -> str:
         return "Catcher"
 
-    def to_dict(self) -> dict:
+    def get_player_info(self) -> dict:
         """
         Convert PlayerCatcher to dictionary format expected by ML models.
         """
@@ -88,7 +96,7 @@ class PlayerCatcher(PlayerType):
         """
         Returns a string representation of the PlayerCatcher object, showing its attributes in dictionary format.
         """
-        return self.to_dict().__str__()
+        return self.get_player_info().__str__()
 
 
 class PlayerInfielder(PlayerType):
@@ -117,7 +125,7 @@ class PlayerInfielder(PlayerType):
         inf_velo (float): Infield velocity (mph)
         exit_velo_max (float): Maximum exit velocity (mph)
         """
-        super().__init__(height, weight, primary_position, region)
+        super().__init__(height, weight, region, primary_position)
         self.inf_velo = inf_velo
         self.exit_velo_max = exit_velo_max
         self.sixty_time = sixty_time
@@ -127,7 +135,7 @@ class PlayerInfielder(PlayerType):
     def get_player_type(self) -> str:
         return "Infielder"
     
-    def to_dict(self) -> dict:
+    def get_player_info(self) -> dict:
         """
         Convert PlayerInfielder to dictionary format expected by ML models.
         """
@@ -147,7 +155,7 @@ class PlayerInfielder(PlayerType):
         """
         Returns string representation of the PlayerInfielder object, showing its attributes in dictionary format.
         """
-        return self.to_dict().__str__()
+        return self.get_player_info().__str__()
 
 
 class PlayerOutfielder(PlayerType):
@@ -177,7 +185,7 @@ class PlayerOutfielder(PlayerType):
         exit_velo_max (float): Maximum exit velocity (mph)
         sixty_time (float): 60-yard dash time (seconds)
         """
-        super().__init__(height, weight, primary_position, region)
+        super().__init__(height, weight, region, primary_position)
         self.of_velo = of_velo
         self.exit_velo_max = exit_velo_max
         self.sixty_time = sixty_time
@@ -187,7 +195,7 @@ class PlayerOutfielder(PlayerType):
     def get_player_type(self) -> str:
         return "Outfielder"
     
-    def to_dict(self) -> dict:
+    def get_player_info(self) -> dict:
         """
         Convert PlayerOutfielder to dictionary format expected by ML models.
         """
@@ -197,7 +205,6 @@ class PlayerOutfielder(PlayerType):
             'sixty_time': self.sixty_time,
             'exit_velo_max': self.exit_velo_max,
             'of_velo': self.of_velo,
-            'primary_position': self.primary_position,
             'player_region': self.region,
             'throwing_hand': self.throwing_hand,
             'hitting_handedness': self.hitting_handedness
@@ -207,7 +214,7 @@ class PlayerOutfielder(PlayerType):
         """
         Returns string representation of the PlayerOutfielder object, showing its attributes in dictionary format.
         """
-        return self.to_dict().__str__()
+        return self.get_player_info().__str__()
 
 
 class PlayerPitcher(PlayerType):
@@ -220,24 +227,9 @@ class PlayerPitcher(PlayerType):
             throwing_hand: str,
             region: str
         ):
-        super().__init__(height, weight, primary_position, region)
+        super().__init__(height, weight, region, primary_position)
         self.throwing_hand = throwing_hand
 
     def get_player_type(self) -> str:
         return "Pitcher"
-
-# TODO: scrap this or make it so it takes all attributes for different types.
-def create_player(height: int, weight: int, primary_position: str, hitting_handedness: str, throwing_hand: str, region: str) -> PlayerType:
-    """
-    Factory method to create the appropriate PlayerType subclass based on the player's position.
-    """
-    if primary_position == 'C':
-        return PlayerCatcher(height, weight, primary_position, hitting_handedness, throwing_hand, region=region)
-    elif primary_position in INFIELD_POSITIONS:
-        return PlayerInfielder(height, weight, primary_position, hitting_handedness, throwing_hand, region=region)
-    elif primary_position in OUTFIELD_POSITIONS:
-        return PlayerOutfielder(height, weight, primary_position, hitting_handedness, throwing_hand, region=region)
-    elif primary_position in PITCHER_POSITIONS:
-        return PlayerPitcher(height, weight, primary_position, hitting_handedness, throwing_hand, region=region)
-    else:
-        raise ValueError(f"Invalid primary position: {primary_position}")
+    
