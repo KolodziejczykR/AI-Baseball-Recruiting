@@ -18,7 +18,7 @@ print("Ensemble Weights: XGBoost (30%) + CatBoost (30%) + LightGBM (20%) + SVM (
 print("=" * 80)
 
 # Load the same engineered data
-csv_path_eng = '/Users/ryankolodziejczyk/Documents/AI Baseball Recruitment/code/backend/data/hitters/test/inf_p4_or_not_eng.csv'
+csv_path_eng = '/Users/ryankolodziejczyk/Documents/AI Baseball Recruitment/code/backend/data/hitters/inf_p4_or_not_eng.csv'
 df_eng = pd.read_csv(csv_path_eng)
 
 print(f"Loaded data: {len(df_eng)} D1-predicted players")
@@ -156,6 +156,58 @@ for col in X_p4_elite.select_dtypes(include=[np.number]).columns:
     Q1, Q3 = X_p4_elite[col].quantile(0.01), X_p4_elite[col].quantile(0.99)
     IQR = Q3 - Q1
     X_p4_elite[col] = X_p4_elite[col].clip(Q1 - 1.5*IQR, Q3 + 1.5*IQR)
+
+# ============================================================================
+# PRINT QUANTILES FOR PRODUCTION PIPELINE PERCENTILE CALCULATION
+# ============================================================================
+print("\n" + "="*80)
+print("QUANTILES FOR PRODUCTION PIPELINE PERCENTILE CALCULATION")
+print("="*80)
+
+# Print quantiles for exit_velo_max percentile calculation (higher is better)
+exit_velo_max_quantiles = [df_eng['exit_velo_max'].quantile(i/100) for i in range(0, 101, 5)]
+print(f"\nexit_velo_max_quantiles = {exit_velo_max_quantiles}")
+
+# Print quantiles for inf_velo percentile calculation (higher is better)
+inf_velo_quantiles = [df_eng['inf_velo'].quantile(i/100) for i in range(0, 101, 5)]
+print(f"\ninf_velo_quantiles = {inf_velo_quantiles}")
+
+# Print quantiles for sixty_time percentile calculation (lower is better)
+sixty_time_quantiles = [df_eng['sixty_time'].quantile(i/100) for i in range(0, 101, 5)]
+print(f"\nsixty_time_quantiles = {sixty_time_quantiles}")
+
+# Print quantiles for height percentile calculation (higher is better)
+height_quantiles = [df_eng['height'].quantile(i/100) for i in range(0, 101, 5)]
+print(f"\nheight_quantiles = {height_quantiles}")
+
+# Print quantiles for weight percentile calculation (higher is better)
+weight_quantiles = [df_eng['weight'].quantile(i/100) for i in range(0, 101, 5)]
+print(f"\nweight_quantiles = {weight_quantiles}")
+
+# Print quantiles for power_speed percentile calculation (higher is better)
+power_speed_quantiles = [df_eng['power_speed'].quantile(i/100) for i in range(0, 101, 5)]
+print(f"\npower_speed_quantiles = {power_speed_quantiles}")
+
+# Print sample calculations for verification
+print(f"\n# Sample calculations for verification:")
+sample_idx = df_eng.index[0]
+print(f"Sample player at index {sample_idx}:")
+print(f"  exit_velo_max: {df_eng.loc[sample_idx, 'exit_velo_max']:.2f}")
+print(f"  inf_velo: {df_eng.loc[sample_idx, 'inf_velo']:.2f}")
+print(f"  sixty_time: {df_eng.loc[sample_idx, 'sixty_time']:.2f}")
+print(f"  height: {df_eng.loc[sample_idx, 'height']:.2f}")
+print(f"  weight: {df_eng.loc[sample_idx, 'weight']:.2f}")
+print(f"  power_speed: {df_eng.loc[sample_idx, 'power_speed']:.2f}")
+print(f"  exit_velo_max_percentile: {df_eng.loc[sample_idx, 'exit_velo_max_percentile']:.2f}")
+print(f"  inf_velo_percentile: {df_eng.loc[sample_idx, 'inf_velo_percentile']:.2f}")
+print(f"  sixty_time_percentile: {df_eng.loc[sample_idx, 'sixty_time_percentile']:.2f}")
+print(f"  height_percentile: {df_eng.loc[sample_idx, 'height_percentile']:.2f}")
+print(f"  weight_percentile: {df_eng.loc[sample_idx, 'weight_percentile']:.2f}")
+print(f"  power_speed_percentile: {df_eng.loc[sample_idx, 'power_speed_percentile']:.2f}")
+
+print("="*80)
+print("END QUANTILES - COPY THE ABOVE VALUES TO PRODUCTION PIPELINE")
+print("="*80 + "\n")
 
 # Train/test split for P4 prediction
 X_p4_train, X_p4_test, y_p4_train, y_p4_test = train_test_split(

@@ -65,7 +65,7 @@ class PlayerCatcher(PlayerType):
         exit_velo_max (float): Maximum exit velocity (mph)
         """
         super().__init__(height, weight, region, primary_position)
-        self.inf_velo = c_velo
+        self.c_velo = c_velo
         self.pop_time = pop_time
         self.exit_velo_max = exit_velo_max
         self.sixty_time = sixty_time

@@ -15,7 +15,7 @@ class P4PredictionResult:
     p4_probability: float
     p4_prediction: bool  
     confidence: str    
-    is_elite_p4: bool         
+    is_elite: bool         
     model_version: str
     elite_indicators: Optional[List[str]] = None  # Why they're elite
     

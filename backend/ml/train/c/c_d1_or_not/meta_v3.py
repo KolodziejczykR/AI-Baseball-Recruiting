@@ -237,6 +237,74 @@ for col in df.select_dtypes(include=[np.number]).columns:
         df[col] = df[col].clip(Q1 - 1.5*IQR, Q3 + 1.5*IQR)
 
 # ============================================================================
+# PRINT QUANTILES FOR PRODUCTION PIPELINE PERCENTILE CALCULATION
+# ============================================================================
+print("\n" + "="*80)
+print("QUANTILES FOR PRODUCTION PIPELINE PERCENTILE CALCULATION")
+print("="*80)
+
+# Print quantiles for c_velo percentile calculation
+c_velo_quantiles = [df['c_velo'].quantile(i/100) for i in range(0, 101, 5)]
+print(f"\nc_velo_quantiles = {c_velo_quantiles}")
+
+# Print quantiles for pop_time percentile calculation (lower is better)
+pop_time_quantiles = [df['pop_time'].quantile(i/100) for i in range(0, 101, 5)]
+print(f"\npop_time_quantiles = {pop_time_quantiles}")
+
+# Print quantiles for exit_velo_max percentile calculation (higher is better)
+exit_velo_max_quantiles = [df['exit_velo_max'].quantile(i/100) for i in range(0, 101, 5)]
+print(f"\nexit_velo_max_quantiles = {exit_velo_max_quantiles}")
+
+# Print quantiles for sixty_time percentile calculation (lower is better)
+sixty_time_quantiles = [df['sixty_time'].quantile(i/100) for i in range(0, 101, 5)]
+print(f"\nsixty_time_quantiles = {sixty_time_quantiles}")
+
+# Print quantiles for height percentile calculation (higher is better)
+height_quantiles = [df['height'].quantile(i/100) for i in range(0, 101, 5)]
+print(f"\nheight_quantiles = {height_quantiles}")
+
+# Print quantiles for weight percentile calculation (higher is better)
+weight_quantiles = [df['weight'].quantile(i/100) for i in range(0, 101, 5)]
+print(f"\nweight_quantiles = {weight_quantiles}")
+
+# Calculate catcher_defensive_percentile components and print quantiles
+print(f"\n# Catcher defensive percentile components:")
+print(f"# Formula: (c_velo_percentile * 0.6) + (pop_time_percentile * 0.4)")
+catcher_defensive_values = df['catcher_defensive_percentile']
+catcher_defensive_quantiles = [catcher_defensive_values.quantile(i/100) for i in range(0, 101, 5)]
+print(f"catcher_defensive_quantiles = {catcher_defensive_quantiles}")
+
+# Calculate catcher_offensive_percentile components and print quantiles  
+print(f"\n# Catcher offensive percentile components:")
+print(f"# Formula: (exit_velo_max_percentile * 0.7) + (sixty_time_percentile * 0.3)")
+catcher_offensive_values = df['catcher_offensive_percentile']
+catcher_offensive_quantiles = [catcher_offensive_values.quantile(i/100) for i in range(0, 101, 5)]
+print(f"catcher_offensive_quantiles = {catcher_offensive_quantiles}")
+
+# Calculate catcher_overall_percentile components and print quantiles
+print(f"\n# Catcher overall percentile components:")
+print(f"# Formula: (catcher_defensive_percentile * 0.4) + (catcher_offensive_percentile * 0.35) + (height_percentile * 0.15) + (weight_percentile * 0.10)")
+catcher_overall_values = df['catcher_overall_percentile']
+catcher_overall_quantiles = [catcher_overall_values.quantile(i/100) for i in range(0, 101, 5)]
+print(f"catcher_overall_quantiles = {catcher_overall_quantiles}")
+
+# Print sample calculations for verification
+print(f"\n# Sample calculations for verification:")
+sample_idx = df.index[0]
+print(f"Sample player at index {sample_idx}:")
+print(f"  c_velo: {df.loc[sample_idx, 'c_velo']:.2f}")
+print(f"  pop_time: {df.loc[sample_idx, 'pop_time']:.2f}")
+print(f"  c_velo_percentile: {df.loc[sample_idx, 'c_velo_percentile']:.2f}")
+print(f"  pop_time_percentile: {df.loc[sample_idx, 'pop_time_percentile']:.2f}")
+print(f"  catcher_defensive_percentile: {df.loc[sample_idx, 'catcher_defensive_percentile']:.2f}")
+print(f"  catcher_offensive_percentile: {df.loc[sample_idx, 'catcher_offensive_percentile']:.2f}")
+print(f"  catcher_overall_percentile: {df.loc[sample_idx, 'catcher_overall_percentile']:.2f}")
+
+print("="*80)
+print("END QUANTILES - COPY THE ABOVE VALUES TO PRODUCTION PIPELINE")
+print("="*80 + "\n")
+
+# ============================================================================
 # FEATURE SELECTION - SINGLE SOURCE OF TRUTH
 # ============================================================================
 # Edit this list to include/exclude features for ALL models

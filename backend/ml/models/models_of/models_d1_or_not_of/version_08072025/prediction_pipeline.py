@@ -18,6 +18,37 @@ if project_root not in sys.path:
 
 from backend.utils.prediction_types import D1PredictionResult
 
+def calculate_percentile_from_quantiles(value, quantiles, lower_is_better=False):
+    """
+    Calculate percentile of a value using pre-computed quantiles from training data
+    
+    Args:
+        value: The value to calculate percentile for
+        quantiles: List of quantiles from training data (every 5%: 0%, 5%, 10%, ..., 100%)
+        lower_is_better: If True, invert percentile (for metrics like sixty_time)
+    
+    Returns:
+        Percentile value (0-100)
+    """
+    # Handle edge cases
+    if pd.isna(value) or value is None:
+        return 50.0  # Default to median
+    
+    # Find which quantile bin the value falls into
+    percentile = 0
+    for i, q_val in enumerate(quantiles):
+        if value <= q_val:
+            percentile = i * 5  # Since quantiles are every 5%
+            break
+    else:
+        percentile = 100  # Value is above all quantiles
+    
+    # Invert if lower is better
+    if lower_is_better:
+        percentile = 100 - percentile
+    
+    return min(100, max(0, percentile))
+
 def predict_outfielder_d1_probability(player_data: dict, models_dir: str) -> D1PredictionResult:
     """
     Clean D1 probability prediction for outfielders using trained ensemble
@@ -62,13 +93,21 @@ def predict_outfielder_d1_probability(player_data: dict, models_dir: str) -> D1P
     df['of_velo_sixty_ratio'] = df['of_velo'] / df['sixty_time']
     df['height_weight'] = df['height'] * df['weight']
     
-    # Percentile features (using fixed values for single prediction)
-    df['exit_velo_max_percentile'] = 50.0  # Default percentile
-    df['of_velo_percentile'] = 50.0
-    df['sixty_time_percentile'] = 50.0
-    df['height_percentile'] = 50.0
-    df['weight_percentile'] = 50.0
-    df['power_speed_percentile'] = 50.0
+    # Training data quantiles for percentile calculation
+    exit_velo_max_quantiles = [61.0, 81.325, 84.0, 86.0, 87.0, 88.2, 89.1, 90.0, 90.7, 91.4, 92.1, 92.9, 93.6, 94.3, 95.0, 95.9, 96.8, 97.8, 99.1, 101.2, 121.7]
+    of_velo_quantiles = [51.0, 73.0, 76.0, 77.0, 79.0, 80.0, 81.0, 81.0, 82.0, 83.0, 83.0, 84.0, 85.0, 85.0, 86.0, 87.0, 88.0, 89.0, 90.0, 92.0, 101.0]
+    sixty_time_quantiles = [3.94, 6.57, 6.65, 6.72, 6.77, 6.82, 6.86, 6.9, 6.94, 6.98, 7.01, 7.06, 7.1, 7.14, 7.19, 7.23580539226532, 7.292672157287598, 7.36, 7.46, 7.5947386837005615, 9.17]
+    height_quantiles = [62.0, 68.0, 69.0, 69.0, 70.0, 70.0, 70.0, 71.0, 71.0, 71.0, 72.0, 72.0, 72.0, 72.0, 73.0, 73.0, 74.0, 74.0, 75.0, 75.0, 83.0]
+    weight_quantiles = [110.0, 150.0, 155.0, 160.0, 163.0, 165.0, 170.0, 170.0, 172.8, 175.0, 175.0, 180.0, 180.0, 185.0, 185.0, 190.0, 190.0, 195.0, 200.0, 206.325, 255.0]
+    power_speed_quantiles = [7.625, 11.040981092730975, 11.522471728071029, 11.842382855873863, 12.10081362660295, 12.328530236892538, 12.522441445882583, 12.678821879382891, 12.841068917018283, 12.98642765310893, 13.143878448089971, 13.293593835568943, 13.4375, 13.582675748926679, 13.732455929469667, 13.904494382022472, 14.08284023668639, 14.298610951406296, 14.600150297580598, 15.029761904761905, 21.065989847715738]
+    
+    # Calculate actual percentiles using training data quantiles
+    df['exit_velo_max_percentile'] = calculate_percentile_from_quantiles(df['exit_velo_max'].iloc[0], exit_velo_max_quantiles, lower_is_better=False)
+    df['of_velo_percentile'] = calculate_percentile_from_quantiles(df['of_velo'].iloc[0], of_velo_quantiles, lower_is_better=False)
+    df['sixty_time_percentile'] = calculate_percentile_from_quantiles(df['sixty_time'].iloc[0], sixty_time_quantiles, lower_is_better=True)
+    df['height_percentile'] = calculate_percentile_from_quantiles(df['height'].iloc[0], height_quantiles, lower_is_better=False)
+    df['weight_percentile'] = calculate_percentile_from_quantiles(df['weight'].iloc[0], weight_quantiles, lower_is_better=False)
+    df['power_speed_percentile'] = calculate_percentile_from_quantiles(df['power_speed'].iloc[0], power_speed_quantiles, lower_is_better=False)
     
     # Additional engineered features
     df['power_per_pound'] = df['exit_velo_max'] / df['weight']

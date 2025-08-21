@@ -19,6 +19,37 @@ from backend.utils.elite_weighting_constants import (
     ELITE_EXIT_VELO_MAX, ELITE_INF_VELO, ELITE_SIXTY_TIME_INF, ELITE_HEIGHT_MIN
 )
 
+def calculate_percentile_from_quantiles(value, quantiles, lower_is_better=False):
+    """
+    Calculate percentile of a value using pre-computed quantiles from training data
+    
+    Args:
+        value: The value to calculate percentile for
+        quantiles: List of quantiles from training data (every 5%: 0%, 5%, 10%, ..., 100%)
+        lower_is_better: If True, invert percentile (for metrics like sixty_time)
+    
+    Returns:
+        Percentile value (0-100)
+    """
+    # Handle edge cases
+    if pd.isna(value) or value is None:
+        return 50.0  # Default to median
+    
+    # Find which quantile bin the value falls into
+    percentile = 0
+    for i, q_val in enumerate(quantiles):
+        if value <= q_val:
+            percentile = i * 5  # Since quantiles are every 5%
+            break
+    else:
+        percentile = 100  # Value is above all quantiles
+    
+    # Invert if lower is better
+    if lower_is_better:
+        percentile = 100 - percentile
+    
+    return min(100, max(0, percentile))
+
 def predict_infielder_p4_probability(player_data: dict, models_dir: str, d1_probability: float) -> P4PredictionResult:
     """
     Clean P4 probability prediction for infielders using trained ensemble
@@ -66,13 +97,21 @@ def predict_infielder_p4_probability(player_data: dict, models_dir: str, d1_prob
     df['sixty_inv'] = 1 / df['sixty_time']
     df['height_weight'] = df['height'] * df['weight']
     
-    # Percentile features (using fixed values for single prediction)
-    df['exit_velo_max_percentile'] = 50.0  # Default percentile
-    df['inf_velo_percentile'] = 50.0
-    df['sixty_time_percentile'] = 50.0
-    df['height_percentile'] = 50.0
-    df['weight_percentile'] = 50.0
-    df['power_speed_percentile'] = 50.0
+    # Training data quantiles for percentile calculation
+    exit_velo_max_quantiles = [61.0, 80.5, 83.0, 85.0, 86.3, 87.2, 88.2, 89.0, 89.9, 90.5, 91.2, 92.0, 92.8, 93.5, 94.2, 95.1, 96.1, 97.3, 98.9, 100.8, 110.7]
+    inf_velo_quantiles = [53.0, 70.0, 73.0, 75.0, 76.0, 77.0, 78.0, 78.0, 79.0, 80.0, 81.0, 81.0, 82.0, 83.0, 84.0, 84.0, 85.0, 86.0, 87.0, 89.0, 99.0]
+    sixty_time_quantiles = [6.0, 6.73, 6.83, 6.9, 6.94, 7.0, 7.05, 7.09, 7.13, 7.18, 7.21, 7.26, 7.3, 7.36, 7.41, 7.47, 7.56, 7.64, 7.75, 7.94, 9.61]
+    height_quantiles = [62.0, 68.0, 69.0, 69.0, 70.0, 70.0, 70.0, 71.0, 71.0, 71.0, 72.0, 72.0, 72.0, 73.0, 73.0, 73.0, 74.0, 74.0, 75.0, 75.0, 80.0]
+    weight_quantiles = [110.0, 145.0, 155.0, 160.0, 160.0, 165.0, 168.0, 170.0, 175.0, 175.0, 180.0, 180.0, 185.0, 185.0, 190.0, 192.2, 196.42000000000024, 205.0, 210.0, 220.0, 296.0]
+    power_speed_quantiles = [6.907894736842106, 10.51981666404049, 10.987698814011218, 11.3463080337328, 11.61017324306378, 11.84110970996217, 12.021499242013904, 12.179052730444118, 12.333782079291819, 12.485938831550042, 12.627551020408164, 12.780271169418116, 12.934873394737236, 13.085682228010418, 13.256082032035387, 13.417218543046358, 13.596039066739014, 13.81429096645807, 14.038563210681229, 14.4363939404699, 16.875]
+    
+    # Calculate actual percentiles using training data quantiles
+    df['exit_velo_max_percentile'] = calculate_percentile_from_quantiles(df['exit_velo_max'].iloc[0], exit_velo_max_quantiles, lower_is_better=False)
+    df['inf_velo_percentile'] = calculate_percentile_from_quantiles(df['inf_velo'].iloc[0], inf_velo_quantiles, lower_is_better=False)
+    df['sixty_time_percentile'] = calculate_percentile_from_quantiles(df['sixty_time'].iloc[0], sixty_time_quantiles, lower_is_better=True)
+    df['height_percentile'] = calculate_percentile_from_quantiles(df['height'].iloc[0], height_quantiles, lower_is_better=False)
+    df['weight_percentile'] = calculate_percentile_from_quantiles(df['weight'].iloc[0], weight_quantiles, lower_is_better=False)
+    df['power_speed_percentile'] = calculate_percentile_from_quantiles(df['power_speed'].iloc[0], power_speed_quantiles, lower_is_better=False)
     
     # Additional engineered features
     df['power_per_pound'] = df['exit_velo_max'] / df['weight']
@@ -192,7 +231,7 @@ def predict_infielder_p4_probability(player_data: dict, models_dir: str, d1_prob
         p4_probability=float(ensemble_prob),
         p4_prediction=bool(p4_prediction),
         confidence=confidence,
-        is_elite_p4=bool(is_elite),
+        is_elite=bool(is_elite),
         elite_indicators=elite_indicators if elite_indicators else None,
         model_version="infielder_p4_08072025"
     )
@@ -201,11 +240,11 @@ def predict_infielder_p4_probability(player_data: dict, models_dir: str, d1_prob
 if __name__ == "__main__":
     # Example usage
     test_player = {
-        'height': 74.0,
-        'weight': 190.0,
-        'sixty_time': 6.9,
-        'exit_velo_max': 92.0,
-        'inf_velo': 82.0,
+        'height': 75.0,
+        'weight': 215.0,
+        'sixty_time': 6.7,
+        'exit_velo_max': 102.0,
+        'inf_velo': 91.0,
         'player_region': 'South',
         'throwing_hand': 'Right',
         'hitting_handedness': 'Right',
@@ -217,5 +256,5 @@ if __name__ == "__main__":
     
     print(f"P4 Prediction: {result.p4_prediction} ({result.p4_probability:.1%})")
     print(f"Confidence: {result.confidence}")
-    print(f"Elite Status: {result.is_elite_p4}")
+    print(f"Elite Status: {result.is_elite}")
     print(f"Elite Indicators: {result.elite_indicators}")

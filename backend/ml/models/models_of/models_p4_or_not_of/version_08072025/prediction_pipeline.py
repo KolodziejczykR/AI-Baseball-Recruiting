@@ -183,7 +183,7 @@ def predict_outfielder_p4_probability(player_data: dict, models_dir: str, d1_pro
         p4_probability=float(ensemble_prob),
         p4_prediction=bool(p4_prediction),
         confidence=confidence,
-        is_elite_p4=bool(is_elite),
+        is_elite=bool(is_elite),
         elite_indicators=elite_indicators if elite_indicators else None,
         model_version=config['model_version']
     )

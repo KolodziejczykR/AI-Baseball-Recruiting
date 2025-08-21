@@ -108,7 +108,7 @@ if __name__ == "__main__":
     if result.p4_results:
         print(f"P4 Probability: {result.p4_results.p4_probability:.1%}")
         print(f"P4 Confidence: {result.p4_results.confidence}")
-        print(f"Elite P4: {result.p4_results.is_elite_p4}")
+        print(f"Elite P4: {result.p4_results.is_elite}")
     
     print(f"Pipeline Confidence: {result.get_pipeline_confidence()}")
     print(f"Models Used: {result.get_models_used()}")

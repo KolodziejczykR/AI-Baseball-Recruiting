@@ -82,15 +82,15 @@ class OutfielderPredictionPipeline:
 if __name__ == "__main__":
     # Create example outfielder
     example_player = PlayerOutfielder(
-        height=74,
-        weight=200,
+        height=71,
+        weight=180,
         primary_position='OF',
-        hitting_handedness='S',
+        hitting_handedness='R',
         throwing_hand='R', 
         region='South',
-        exit_velo_max=105.0,
-        of_velo=98.0,
-        sixty_time=6.6
+        exit_velo_max=90.0,
+        of_velo=88.0,
+        sixty_time=6.95
     )
     
     # Initialize pipeline and make prediction
@@ -108,7 +108,7 @@ if __name__ == "__main__":
     if result.p4_results:
         print(f"P4 Probability: {result.p4_results.p4_probability:.1%}")
         print(f"P4 Confidence: {result.p4_results.confidence}")
-        print(f"Elite P4: {result.p4_results.is_elite_p4}")
+        print(f"Elite P4: {result.p4_results.is_elite}")
     
     print(f"Pipeline Confidence: {result.get_pipeline_confidence()}")
     print(f"Models Used: {result.get_models_used()}")

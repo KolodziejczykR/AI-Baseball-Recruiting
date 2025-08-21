@@ -16,6 +16,37 @@ if project_root not in sys.path:
 
 from backend.utils.prediction_types import D1PredictionResult
 
+def calculate_percentile_from_quantiles(value, quantiles, lower_is_better=False):
+    """
+    Calculate percentile of a value using pre-computed quantiles from training data
+    
+    Args:
+        value: The value to calculate percentile for
+        quantiles: List of quantiles from training data (every 5%: 0%, 5%, 10%, ..., 100%)
+        lower_is_better: If True, invert percentile (for metrics like sixty_time, pop_time)
+    
+    Returns:
+        Percentile value (0-100)
+    """
+    # Handle edge cases
+    if pd.isna(value) or value is None:
+        return 50.0  # Default to median
+    
+    # Find which quantile bin the value falls into
+    percentile = 0
+    for i, q_val in enumerate(quantiles):
+        if value <= q_val:
+            percentile = i * 5  # Since quantiles are every 5%
+            break
+    else:
+        percentile = 100  # Value is above all quantiles
+    
+    # Invert if lower is better
+    if lower_is_better:
+        percentile = 100 - percentile
+    
+    return min(100, max(0, percentile))
+
 def predict_catcher_d1_probability(player_data: dict, models_dir: str) -> D1PredictionResult:
     """
     Clean D1 probability prediction for catchers using trained ensemble
@@ -56,12 +87,39 @@ def predict_catcher_d1_probability(player_data: dict, models_dir: str) -> D1Pred
     df['height_weight'] = df['height'] * df['weight']
     df['pop_time_c_velo_ratio'] = df['pop_time'] / df['c_velo']
     
-    # Percentile features (using fixed values for single prediction)
-    df['c_velo_percentile'] = 50.0  # Default percentile
-    df['pop_time_percentile'] = 50.0
-    df['catcher_defensive_percentile'] = 50.0
-    df['catcher_offensive_percentile'] = 50.0
-    df['catcher_overall_percentile'] = 50.0
+    # Training data quantiles for percentile calculation
+    c_velo_quantiles = [54.0, 68.0, 70.0, 71.0, 72.0, 73.0, 73.0, 74.0, 75.0, 75.0, 76.0, 76.0, 77.0, 77.0, 78.0, 78.0, 79.0, 80.0, 81.0, 82.0, 92.0]
+    pop_time_quantiles = [1.6, 1.9, 1.9, 1.9, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.1, 2.1, 2.1, 2.1, 2.1, 2.2, 2.2, 2.2, 2.3, 3.0]
+    catcher_defensive_quantiles = [0.011385199240986717, 7.975332068311193, 13.810246679316887, 18.222011385199238, 22.206831119544596, 29.903225806451616, 34.89563567362429, 38.35863377609108, 42.5370018975332, 46.35483870967742, 52.189753320683124, 52.98861480075901, 58.98861480075901, 64.82352941176471, 65.85768500948767, 70.03795066413662, 75.08538899430741, 80.29981024667931, 84.84250474383302, 91.66223908918406, 99.76470588235294]
+    catcher_offensive_quantiles = [0.08538899430739892, 9.758965844402274, 16.168595825426948, 21.349146110056925, 25.98121442125237, 30.192836812144208, 34.35645161290322, 38.255407969639464, 42.50740037950664, 46.29943074003795, 50.063092979127134, 53.93704933586338, 57.85426944971537, 61.72333965844402, 65.59525616698292, 69.5220588235294, 74.44554079696394, 78.92803605313092, 83.71622390891841, 89.82689753320682, 99.66888045540796]
+    catcher_overall_quantiles = [0.046299810246678806, 16.30904174573055, 22.542960151802657, 27.095607210626188, 30.99872865275142, 34.394271821631875, 37.684217267552185, 41.1058372865275, 44.437846299810246, 47.41603889943074, 50.301707779886144, 53.56205407969639, 56.20286527514231, 59.56032732447817, 62.78022296015179, 65.8533088235294, 68.93480075901329, 72.77673387096773, 76.6403036053131, 82.09949715370021, 98.01503795066414]
+    exit_velo_max_quantiles = [47.9, 81.0, 83.8, 85.3, 86.5, 87.6, 88.5, 89.4, 90.1, 90.9, 91.7, 92.3, 93.1, 93.8, 94.6, 95.4, 96.3, 97.2, 98.4, 100.2, 129.4]
+    sixty_time_quantiles = [4.030349999999995, 6.86, 6.97, 7.04, 7.09, 7.14, 7.19, 7.237681423187255, 7.28, 7.32, 7.36, 7.409153294563295, 7.45, 7.49, 7.54, 7.6, 7.67, 7.75, 7.86, 8.03, 9.9]
+    height_quantiles = [60.0, 68.0, 69.0, 69.0, 70.0, 70.0, 70.0, 71.0, 71.0, 71.0, 72.0, 72.0, 72.0, 72.0, 72.0, 73.0, 73.0, 74.0, 74.0, 75.0, 84.0]
+    weight_quantiles = [104.0, 155.6, 163.98, 165.0, 170.0, 175.0, 175.0, 180.0, 180.0, 185.0, 185.0, 186.5, 190.0, 190.0, 195.0, 195.075, 200.0, 205.0, 210.0, 215.0, 282.2]
+
+    # Calculate actual percentiles using training data quantiles
+    df['c_velo_percentile'] = calculate_percentile_from_quantiles(df['c_velo'].iloc[0], c_velo_quantiles, lower_is_better=False)
+    df['pop_time_percentile'] = calculate_percentile_from_quantiles(df['pop_time'].iloc[0], pop_time_quantiles, lower_is_better=True)
+    
+    # Calculate composite percentiles using the same formulas as training
+    # Catcher defensive percentile: (c_velo_percentile * 0.6) + (pop_time_percentile * 0.4)
+    calculated_defensive = (df['c_velo_percentile'] * 0.6) + (df['pop_time_percentile'] * 0.4)
+    df['catcher_defensive_percentile'] = calculate_percentile_from_quantiles(calculated_defensive.iloc[0], catcher_defensive_quantiles, lower_is_better=False)
+    
+    # Calculate individual percentiles needed for composite calculations
+    exit_velo_max_percentile = calculate_percentile_from_quantiles(df['exit_velo_max'].iloc[0], exit_velo_max_quantiles, lower_is_better=False)
+    sixty_time_percentile = calculate_percentile_from_quantiles(df['sixty_time'].iloc[0], sixty_time_quantiles, lower_is_better=True)
+    height_percentile = calculate_percentile_from_quantiles(df['height'].iloc[0], height_quantiles, lower_is_better=False)
+    weight_percentile = calculate_percentile_from_quantiles(df['weight'].iloc[0], weight_quantiles, lower_is_better=False)
+    
+    # Catcher offensive percentile: (exit_velo_max_percentile * 0.7) + (sixty_time_percentile * 0.3)
+    calculated_offensive = (exit_velo_max_percentile * 0.7) + (sixty_time_percentile * 0.3)
+    df['catcher_offensive_percentile'] = calculate_percentile_from_quantiles(calculated_offensive, catcher_offensive_quantiles, lower_is_better=False)
+    
+    # Catcher overall percentile: (defensive * 0.4) + (offensive * 0.35) + (height * 0.15) + (weight * 0.10)
+    calculated_overall = (df['catcher_defensive_percentile'] * 0.4) + (df['catcher_offensive_percentile'] * 0.35) + (height_percentile * 0.15) + (weight_percentile * 0.10)
+    df['catcher_overall_percentile'] = calculate_percentile_from_quantiles(calculated_overall.iloc[0], catcher_overall_quantiles, lower_is_better=False)
     
     # Additional engineered features
     df['power_per_pound'] = df['exit_velo_max'] / df['weight']
@@ -134,8 +192,8 @@ def predict_catcher_d1_probability(player_data: dict, models_dir: str) -> D1Pred
     # Get final prediction from meta-learner
     final_prob = meta_learner.predict_proba(meta_features)[0, 1]
     
-    # Apply trained threshold
-    threshold = metadata['optimal_threshold']
+    # Apply trained threshold (0.61 threshold to send more rated players to D1s)
+    threshold = metadata['optimal_threshold'] - 0.15    # original threshold was 0.76, extremely high
     d1_prediction = final_prob >= threshold
     
     # Combined confidence: ensemble agreement + boundary distance (adjusted for 2-model ensemble)
