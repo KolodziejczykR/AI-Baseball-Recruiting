@@ -59,6 +59,8 @@ async def predict_catcher(input_data: CatcherInput) -> Dict[str, Any]:
         input_dict = input_data.model_dump(exclude_none=True)
         logger.info(f"Processing catcher prediction for position: {input_dict['primary_position']}")
         
+        # test git 
+
         # Create PlayerCatcher object
         player = PlayerCatcher(
             height=input_dict.get('height'),
