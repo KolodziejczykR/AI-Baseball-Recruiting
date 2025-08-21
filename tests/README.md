@@ -59,18 +59,18 @@ pip install pytest fastapi httpx
 ### Running Tests from Command Line
 ```bash
 # Run all tests
-pytest tests/ -v
+python3 -m pytest tests/ -v
 
 # Run specific test files
-pytest tests/test_infield_model_pipeline.py -v
-pytest tests/test_outfielder_model_pipeline.py -v
-pytest tests/test_api.py -v
+python3 -m pytest tests/test_infield_model_pipeline.py -v
+python3 -m pytest tests/test_outfielder_model_pipeline.py -v
+python3 -m pytest tests/test_api.py -v
 
 # Run specific test functions
-pytest tests/test_infield_model_pipeline.py::test_high_performer -v
+python3 -m pytest tests/test_infield_model_pipeline.py::test_high_performer -v
 
 # Run tests matching a pattern
-pytest tests/test_api.py -k "infielder" -v
+python3 -m pytest tests/test_api.py -k "infielder" -v
 ```
 
 ## Test Data

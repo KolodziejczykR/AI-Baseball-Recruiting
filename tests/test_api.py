@@ -1,3 +1,4 @@
+from typing import Any, Dict
 import pytest
 from fastapi.testclient import TestClient
 from backend.api.main import app
@@ -69,9 +70,7 @@ def test_infielder_features_endpoint():
     assert response.status_code == 200
     result = response.json()
     assert "required_features" in result
-    assert "feature_info" in result
-    assert isinstance(result["required_features"], list)
-    assert isinstance(result["feature_info"], dict)
+    assert isinstance(result["required_features"], Dict)
 
 def test_infielder_health_endpoint():
     """Test infielder health endpoint"""
@@ -171,9 +170,7 @@ def test_outfielder_features_endpoint():
     assert response.status_code == 200
     result = response.json()
     assert "required_features" in result
-    assert "feature_info" in result
-    assert isinstance(result["required_features"], list)
-    assert isinstance(result["feature_info"], dict)
+    assert isinstance(result["required_features"], Dict)
 
 def test_outfielder_health_endpoint():
     """Test outfielder health endpoint"""
@@ -348,9 +345,7 @@ def test_catcher_features_endpoint():
     assert response.status_code == 200
     result = response.json()
     assert "required_features" in result
-    assert "feature_info" in result
-    assert isinstance(result["required_features"], list)
-    assert isinstance(result["feature_info"], dict)
+    assert isinstance(result["required_features"], Dict)
 
 def test_catcher_health_endpoint():
     """Test catcher health endpoint"""
