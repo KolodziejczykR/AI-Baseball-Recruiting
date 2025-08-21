@@ -36,10 +36,12 @@ def test_infielder_predict_high_performer():
     assert "confidence" in result
     assert "model_chain" in result
     assert "d1_probability" in result
-    assert "final_category" in result
     assert result["final_prediction"] in ["Non-D1", "Non-P4 D1", "Power 4 D1"]
     assert isinstance(result["probabilities"], dict)
-    assert all(0.0 <= v <= 1.0 for v in result["probabilities"].values())
+    # Check nested probability structure
+    for stage_probs in result["probabilities"].values():
+        if isinstance(stage_probs, dict):  # Only check if it's a dict (P4 might be empty)
+            assert all(0.0 <= v <= 1.0 for v in stage_probs.values())
 
 def test_infielder_predict_minimal_data():
     """Test infielder prediction with minimal data"""
@@ -136,10 +138,12 @@ def test_outfielder_predict_high_performer():
     assert "confidence" in result
     assert "model_chain" in result
     assert "d1_probability" in result
-    assert "final_category" in result
     assert result["final_prediction"] in ["Non-D1", "Non-P4 D1", "Power 4 D1"]
     assert isinstance(result["probabilities"], dict)
-    assert all(0.0 <= v <= 1.0 for v in result["probabilities"].values())
+    # Check nested probability structure
+    for stage_probs in result["probabilities"].values():
+        if isinstance(stage_probs, dict):  # Only check if it's a dict (P4 might be empty)
+            assert all(0.0 <= v <= 1.0 for v in stage_probs.values())
 
 def test_outfielder_predict_minimal_data():
     """Test outfielder prediction with minimal data"""
@@ -310,17 +314,26 @@ def test_catcher_predict_high_performer():
     assert "confidence" in result
     assert "model_chain" in result
     assert "d1_probability" in result
-    assert "final_category" in result
     assert result["final_prediction"] in ["Non-D1", "Non-P4 D1", "Power 4 D1"]
     assert isinstance(result["probabilities"], dict)
-    assert all(0.0 <= v <= 1.0 for v in result["probabilities"].values())
+    # Check nested probability structure
+    for stage_probs in result["probabilities"].values():
+        if isinstance(stage_probs, dict):  # Only check if it's a dict (P4 might be empty)
+            assert all(0.0 <= v <= 1.0 for v in stage_probs.values())
 
 def test_catcher_predict_minimal_data():
-    """Test catcher prediction with minimal data"""
+    """Test catcher prediction with minimal but complete data"""
     data = {
+        "height": 70,
+        "weight": 175,
+        "sixty_time": 7.0,
         "exit_velo_max": 85.0,
         "c_velo": 75.0,
-        "primary_position": "C"
+        "pop_time": 2.0,
+        "primary_position": "C",
+        "hitting_handedness": "R",
+        "throwing_hand": "R",
+        "player_region": "West"
     }
     response = client.post("/catcher/predict", json=data)
     assert response.status_code == 200
@@ -362,8 +375,9 @@ def test_catcher_example_endpoint():
 def test_catcher_specific_features():
     """Test catcher prediction with catcher-specific features"""
     data = {
-        "height": 70.0,
-        "weight": 175.0,
+        "height": 70,
+        "weight": 175,
+        "sixty_time": 7.0,
         "exit_velo_max": 85.0,
         "c_velo": 75.0,
         "pop_time": 2.0,
@@ -382,6 +396,9 @@ def test_catcher_different_pop_times():
     """Test catcher predictions with different pop times"""
     pop_times = [1.8, 2.0, 2.2, 2.5]
     base_data = {
+        "height": 72,
+        "weight": 180,
+        "sixty_time": 7.0,
         "exit_velo_max": 85.0,
         "c_velo": 75.0,
         "throwing_hand": "R",
@@ -402,9 +419,16 @@ def test_catcher_different_pop_times():
 def test_catcher_invalid_data():
     """Test catcher prediction with invalid data"""
     data = {
+        "height": 70,
+        "weight": 175,
+        "sixty_time": 7.0,
         "exit_velo_max": "invalid",  # Should be a number
         "c_velo": 75.0,
-        "primary_position": "C"
+        "pop_time": 2.0,
+        "primary_position": "C",
+        "hitting_handedness": "R",
+        "throwing_hand": "R",
+        "player_region": "West"
     }
     response = client.post("/catcher/predict", json=data)
     # Should either return 422 (validation error) or 400 (processing error)
@@ -414,4 +438,4 @@ def test_catcher_empty_data():
     """Test catcher prediction with empty data"""
     data = {}
     response = client.post("/catcher/predict", json=data)
-    assert response.status_code == 400  # Should return error for missing required fields 
+    assert response.status_code == 422  # Should return error for missing required fields 

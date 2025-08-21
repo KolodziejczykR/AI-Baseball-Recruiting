@@ -34,56 +34,13 @@ class InfielderInput(BaseModel):
     inf_velo: float = Field(..., ge=50, le=100, description="Infield velocity in mph")
     
     # Required categorical features
-    primary_position: str = Field(..., description="Primary position")
-    hitting_handedness: str = Field(..., description="Hitting handedness")
-    throwing_hand: str = Field(..., description="Throwing hand")
-    player_region: str = Field(..., description="Player region")
-    
-    @field_validator('primary_position')
-    @classmethod
-    def validate_position(cls, v):
-        valid_positions = ['SS', '2B', '3B', '1B']
-        if v not in valid_positions:
-            raise ValueError(f"Position must be one of: {valid_positions}")
-        return v
-    
-    @field_validator('hitting_handedness', 'throwing_hand')
-    @classmethod
-    def validate_handedness(cls, v):
-        valid_hands = ['R', 'L', 'S']
-        if v not in valid_hands:
-            raise ValueError(f"Hand must be one of: {valid_hands}")
-        return v
-    
-    @field_validator('player_region')
-    @classmethod
-    def validate_region(cls, v):
-        valid_regions = ['West', 'South', 'Northeast', 'Midwest']
-        if v not in valid_regions:
-            raise ValueError(f"Region must be one of: {valid_regions}")
-        return v
+    primary_position: str = Field(..., description="Primary position ('1B', '2B', '3B', 'SS')")
+    hitting_handedness: str = Field(..., description="Hitting handedness (R, L, S)")
+    throwing_hand: str = Field(..., description="Throwing hand (L, R)")
+    player_region: str = Field(..., description="Player region (Midwest, Northeast, South, West)")
 
-class ErrorResponse(BaseModel):
-    """Standard error response model"""
-    error: str
-    error_type: str
-    details: Optional[Dict[str, Any]] = None
 
-class PredictionResponse(BaseModel):
-    """Response model for infielder predictions"""
-    final_prediction: str
-    final_category: int
-    d1_probability: float
-    p4_probability: Optional[float]
-    probabilities: Dict[str, float]
-    confidence: str
-    model_chain: str
-    d1_details: Optional[Dict[str, Any]] = None
-    p4_details: Optional[Dict[str, Any]] = None
-    player_info: Optional[Dict[str, Any]] = None
-    error: Optional[str] = None
-
-@router.post("/predict", response_model=PredictionResponse, responses={
+@router.post("/predict", responses={
     400: {"description": "Validation error or prediction failed"},
     422: {"description": "Input validation error"},
     500: {"description": "Internal server error"}
@@ -121,14 +78,10 @@ async def predict_infielder(input_data: InfielderInput) -> Dict[str, Any]:
         )
         
         # Run prediction
-        result = pipeline.predict(player)
+        result = pipeline.predict(player)    
         
-        if "error" in result:
-            logger.error(f"Prediction failed: {result['error']}")
-            raise HTTPException(status_code=400, detail=result["error"])
-        
-        logger.info(f"Prediction successful: {result['final_prediction']}")
-        return result
+        logger.info(f"Prediction successful: {result.get_final_prediction()}")
+        return result.get_api_response()
         
     except ValueError as e:
         logger.error(f"Validation error: {str(e)}")
@@ -139,13 +92,19 @@ async def predict_infielder(input_data: InfielderInput) -> Dict[str, Any]:
 
 @router.get("/features")
 async def get_required_features() -> Dict[str, Any]:
-    """Get information about required features for prediction"""
+    """Get information about required features for prediction using player object"""
     if pipeline is None:
         raise HTTPException(status_code=500, detail="Prediction pipeline not available")
     
+    # Create a dummy player to get feature information
+    dummy_player = PlayerInfielder(
+        height=72, weight=180, primary_position="SS", 
+        hitting_handedness="R", throwing_hand="R", region="West",
+        exit_velo_max=85.0, inf_velo=75.0, sixty_time=7.0
+    )
+    
     return {
-        "required_features": pipeline.get_required_features(),
-        "feature_info": pipeline.get_feature_info()
+        "required_features": dummy_player.get_player_features()
     }
 
 @router.get("/health")

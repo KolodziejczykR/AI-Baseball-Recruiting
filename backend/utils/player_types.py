@@ -35,6 +35,14 @@ class PlayerType:
             "primary_position": self.primary_position,
             "region": self.region
         }
+    
+    def get_player_features(self) -> dict:
+        return {
+            "height": 'player height',
+            "weight": 'player weight',
+            "primary_position": 'player primary position',
+            "region": 'player region (northeast, midwest, south, west)'
+        }
 
 class PlayerCatcher(PlayerType):
     def __init__(
@@ -75,10 +83,24 @@ class PlayerCatcher(PlayerType):
     def get_player_type(self) -> str:
         return "Catcher"
 
-    def get_player_info(self) -> dict:
+    def get_player_features(self) -> dict:
         """
         Convert PlayerCatcher to dictionary format expected by ML models.
         """
+        return {
+            'height': 'player height',
+            'weight': 'player weight',
+            'sixty_time': 'player 60-yard dash time (ex 6.95 seconds)',
+            'exit_velo_max': 'player exit velocity (mph)',
+            'c_velo': 'player catcher velocity (mph)',
+            'pop_time': 'player pop time (seconds)',
+            'primary_position': 'player primary position (catcher)',
+            'player_region': 'player region (northeast, midwest, south, west)',
+            'throwing_hand': 'player throwing hand (left, right)',
+            'hitting_handedness': 'player hitting handedness (left, right, switch)'
+        }
+    
+    def get_player_info(self) -> dict:
         return {
             'height': self.height,
             'weight': self.weight,
@@ -135,6 +157,22 @@ class PlayerInfielder(PlayerType):
     def get_player_type(self) -> str:
         return "Infielder"
     
+    def get_player_features(self) -> dict:
+        """
+        Convert PlayerInfielder to dictionary format expected by ML models.
+        """
+        return {
+            'height': 'player height',
+            'weight': 'player weight',
+            'sixty_time': 'player 60-yard dash time (ex 6.95 seconds)',
+            'exit_velo_max': 'player exit velocity (mph)',
+            'inf_velo': 'player infield velocity (mph)',
+            'primary_position': 'player primary position (1B, 2B, 3B, SS)',
+            'player_region': 'player region (northeast, midwest, south, west)',
+            'throwing_hand': 'player throwing hand (left, right)',
+            'hitting_handedness': 'player hitting handedness (left, right, switch)'
+        }
+
     def get_player_info(self) -> dict:
         """
         Convert PlayerInfielder to dictionary format expected by ML models.
@@ -195,6 +233,22 @@ class PlayerOutfielder(PlayerType):
     def get_player_type(self) -> str:
         return "Outfielder"
     
+    def get_player_features(self) -> dict:
+        """
+        Convert PlayerOutfielder to dictionary format expected by ML models.
+        """
+        return {
+            'height': 'player height',
+            'weight': 'player weight',
+            'sixty_time': 'player 60-yard dash time (ex 6.95 seconds)',
+            'exit_velo_max': 'player exit velocity (mph)',
+            'of_velo': 'player outfield velocity (mph)',
+            'primary_position': 'player primary position (OF)',
+            'player_region': 'player region (northeast, midwest, south, west)',
+            'throwing_hand': 'player throwing hand (left, right)',
+            'hitting_handedness': 'player hitting handedness (left, right, switch)'
+        }
+
     def get_player_info(self) -> dict:
         """
         Convert PlayerOutfielder to dictionary format expected by ML models.
