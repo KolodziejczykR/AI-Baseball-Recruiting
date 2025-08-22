@@ -1,6 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
+
+// Force dynamic rendering to avoid build-time environment variable issues
+export const dynamic = 'force-dynamic'
 import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase"
 

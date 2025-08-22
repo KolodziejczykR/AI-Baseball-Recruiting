@@ -1,6 +1,9 @@
 "use client"
 
 import { useState } from "react"
+
+// Force dynamic rendering to avoid build-time environment variable issues
+export const dynamic = 'force-dynamic'
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
