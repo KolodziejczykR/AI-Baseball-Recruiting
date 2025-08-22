@@ -24,11 +24,26 @@ export default function WaitlistSurvey() {
     const waitlistEmail = sessionStorage.getItem("waitlist_email")
     if (waitlistEmail) {
       setEmail(waitlistEmail)
+    } else {
+      // If no email in session, redirect to waitlist page
+      window.location.href = "/waitlist"
     }
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Prevent double submission
+    if (loading || submitted) {
+      return
+    }
+    
+    // Check if email is still available (not cleared from successful submission)
+    if (!email) {
+      alert("Session expired. Please start over from the waitlist page.")
+      window.location.href = "/waitlist"
+      return
+    }
     
     // Validate required fields
     if (!budget || !travelTeam || !recruitingAgency || !graduationYear) {
@@ -56,6 +71,14 @@ export default function WaitlistSurvey() {
 
       if (error) {
         console.error('Supabase error:', error)
+        // Handle duplicate email error specifically
+        if (error.code === '23505') { // PostgreSQL unique violation
+          alert("This email has already been submitted. You cannot submit the survey twice.")
+          // Clear session and redirect
+          sessionStorage.removeItem("waitlist_email")
+          window.location.href = "/waitlist/success"
+          return
+        }
         throw new Error(error.message)
       }
 
