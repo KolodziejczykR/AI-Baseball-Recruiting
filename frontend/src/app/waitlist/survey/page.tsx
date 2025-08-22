@@ -104,7 +104,7 @@ export default function WaitlistSurvey() {
             {/* Budget Question */}
             <div>
               <label className="block text-lg font-semibold text-gray-900 mb-4">
-                What's your budget for a recruiting tool like this? (One time payment) <span className="text-red-500">*</span>
+                What&apos;s your budget for a recruiting tool like this? (One time payment) <span className="text-red-500">*</span>
               </label>
               <div className="grid grid-cols-2 gap-4">
                 {[
@@ -193,7 +193,7 @@ export default function WaitlistSurvey() {
             {/* Graduation Year */}
             <div>
               <label className="block text-lg font-semibold text-gray-900 mb-4">
-                What's the athlete's graduation year? <span className="text-red-500">*</span>
+                What&apos;s the athlete&apos;s graduation year? <span className="text-red-500">*</span>
               </label>
               <select
                 value={graduationYear}
@@ -210,7 +210,7 @@ export default function WaitlistSurvey() {
             {/* Recruiting Challenge Question */}
             <div>
               <label className="block text-lg font-semibold text-gray-900 mb-4">
-                What's your biggest recruiting challenge or pain point?
+                What&apos;s your biggest recruiting challenge or pain point?
               </label>
               <textarea
                 value={recruitingChallenge}
@@ -238,7 +238,7 @@ export default function WaitlistSurvey() {
             {/* Additional Info */}
             <div>
               <label className="block text-lg font-semibold text-gray-900 mb-4">
-                Is there anything else you'd like for the team to know?
+                Is there anything else you&apos;d like for the team to know?
               </label>
               <textarea
                 value={additionalInfo}

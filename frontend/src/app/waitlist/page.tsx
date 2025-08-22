@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { validateEmail, saveWaitlistEntry, isEmailAlreadyRegistered } from "@/lib/utils"
+import { validateEmail, isEmailAlreadyRegistered } from "@/lib/utils"
 
 export default function WaitlistPage() {
   const [email, setEmail] = useState("")
@@ -147,10 +147,10 @@ export default function WaitlistPage() {
                 </svg>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                Don't miss the giveaway
+                Don&apos;t miss the giveaway
               </h3>
               <p className="text-gray-600 leading-relaxed text-sm">
-                Join the waitlist for free, get entered automatically. It's that simple.
+                Join the waitlist for free, get entered automatically. It&apos;s that simple.
               </p>
             </div>
           </div>

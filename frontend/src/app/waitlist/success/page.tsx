@@ -10,16 +10,16 @@ export default function SuccessPage() {
           </div>
           
           <h1 className="text-4xl font-bold text-gray-900 mb-6">
-            Perfect! You're all set!
+            Perfect! You&apos;re all set!
           </h1>
           
           <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-            Thanks for joining the BaseballPATH waitlist and sharing your feedback. We'll be in touch soon with more details!
+            Thanks for joining the BaseballPATH waitlist and sharing your feedback. We&apos;ll be in touch soon with more details!
           </p>
 
           <div className="bg-gradient-to-r from-blue-50 to-red-50 rounded-xl p-6 border border-blue-100">
             <p className="text-gray-700 font-medium">
-              Keep an eye on your inbox - we'll send you exclusive updates and launch information as soon as it's ready!
+              Keep an eye on your inbox - we&apos;ll send you exclusive updates and launch information as soon as it&apos;s ready!
             </p>
           </div>
         </div>
